@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "sdkVersion": "54.0.0",
+    "name": "Piauí Tickets",
+    "slug": "PiauiTickets",
+    "version": "1.0.2",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.igorv13.piauiticketsiosapp",
+      "buildNumber": "1.0.2",
+      "icon": "./assets/logo.png",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Este aplicativo precisa acessar a câmera para tirar um foto e colocar como foto de perfil no seu usuário.",
+        "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar suas fotos para permitir upload de imagens.",
+        "NSLocationWhenInUseUsageDescription": "Este aplicativo precisa acessar sua localização para fornecer eventos que estão acontecendo próximos baseados em localização."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.igorv13.PiauiTickets",
+      "versionCode": 8
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b5a9af28-81a9-43af-aa7d-ad751dfc334e"
+      }
+    }
+  }
+}
