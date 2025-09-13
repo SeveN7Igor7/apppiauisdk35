@@ -206,7 +206,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ eventId }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets?.top || 0 }]}>
       <View style={styles.header}>
         {/* No back button here, as it's a bottom sheet */}
         <Text style={styles.headerTitle}>Chat do Evento</Text>
@@ -225,7 +225,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ eventId }) => {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.bottom + 5 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? (insets?.bottom || 0) + 5 : 0}
         style={styles.inputContainer}
       >
         <TextInput
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.border.dark,
     backgroundColor: Colors.background.medium,
-    paddingBottom: Platform.OS === 'ios' ? insets.bottom : 8,
+    paddingBottom: Platform.OS === 'ios' ? (insets?.bottom || 0) : 8,
   },
   textInput: {
     flex: 1,
