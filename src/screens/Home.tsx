@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useContext, useRef, useCallback } from 'react';
 import {
   View,
@@ -85,19 +84,16 @@ export default function Home() {
 
   // Função para abrir o WebView com detalhes do evento
   const handleVerDetalhes = (evento: Evento) => {
-    console.log('[Home] ===== DEPURAÇÃO WEBVIEW =====');
-    console.log('[Home] Função handleVerDetalhes chamada');
-    console.log('[Home] Evento:', evento.nomeevento);
-    console.log('[Home] ID do evento:', evento.id);
-    console.log('[Home] Nome URL:', evento.nomeurl);
-    console.log('[Home] Estado atual webViewVisible:', webViewVisible);
-    console.log('[Home] Estado atual selectedEvent:', selectedEvent?.nomeevento || 'null');
-    
+    const eventId = evento.id;
+    const eventNomeUrl = evento.nomeurl || '';
+    const url = `https://piauitickets.com/comprar/${eventId}/${eventNomeUrl}`;
+    console.log('[Home] Evento completo ao clicar:', JSON.stringify(evento, null, 2));
+    console.log(`[Home] ID do evento: ${evento.id}`);
+    console.log(`[Home] Nome do evento: ${evento.nomeevento}`);
+    console.log(`[Home] Nome URL: ${evento.nomeurl}`);
+    console.log(`[Home] Abrindo WebView para Evento ID: ${eventId}, Nome URL: ${eventNomeUrl}, URL: ${url}`);
     setSelectedEvent(evento);
     setWebViewVisible(true);
-    
-    console.log('[Home] Estados atualizados - webViewVisible: true, selectedEvent:', evento.nomeevento);
-    console.log('[Home] ===== FIM DEPURAÇÃO =====');
   };
 
   // Função para fechar o WebView
@@ -123,7 +119,7 @@ export default function Home() {
               id,
               nomeevento: evento.nomeevento || 'Sem nome',
               imageurl: evento.imageurl || '',
-              nomeurl: evento.nomeurl,
+              nomeurl: evento.nomeurl || '', // Garante que nomeurl seja sempre uma string
               eventvisible: true,
               datainicio: evento.datainicio,
               aberturaportas: evento.aberturaportas,
@@ -299,7 +295,8 @@ export default function Home() {
     return !!vibe && vibe.count >= 9 && vibe.media >= 4.5;
   };
 
-  const renderEventCard = (evento: Evento) => {
+    const renderEventCard = (evento: Evento) => {
+    console.log(`[EventCard] Evento ID: ${evento.id}, Nome URL: ${evento.nomeurl}`);
     const encerrado = !evento.vendaaberta?.vendaaberta;
     const urgencia = getUrgenciaMensagem(evento);
     
@@ -351,10 +348,10 @@ export default function Home() {
             <Text style={styles.vibeText}>{getMensagemVibe(evento.id)}</Text>
           </View>
           <TouchableOpacity
-            style={styles.vibeButton}
-            onPress={() => handleAvaliarVibe(evento)}
+            style={styles.detailsButtonFullWidth}
+            onPress={() => handleVerDetalhes(evento)}
           >
-            <Text style={styles.vibeButtonText}>Avaliar Vibe</Text>
+            <Text style={styles.detailsButtonText}>Ver Detalhes</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -436,7 +433,9 @@ export default function Home() {
 
       {webViewVisible && selectedEvent && (
         <EventWebView
-          eventUrl={selectedEvent.nomeurl || ''}
+          visible={webViewVisible}
+          eventId={selectedEvent.id}
+          nomeUrl={selectedEvent.nomeurl || ''}
           onClose={handleCloseWebView}
           eventName={selectedEvent.nomeevento}
         />
@@ -472,20 +471,21 @@ const styles = StyleSheet.create({
   },
   headerLogo: {
     width: 70,
-    height: 35,
+    height: 40,
   },
   headerIcons: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
   headerButton: {
     marginLeft: Spacing.md,
     padding: Spacing.xs,
   },
   categoryContainer: {
-    paddingVertical: Spacing.sm,
     backgroundColor: Colors.background,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.neutral.lightGray,
   },
   categoryScrollViewContent: {
     paddingHorizontal: Spacing.md,
@@ -493,13 +493,13 @@ const styles = StyleSheet.create({
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 20,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     marginRight: Spacing.sm,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.neutral.lightGray,
+    backgroundColor: Colors.neutral.white,
   },
   categoryButtonActive: {
     backgroundColor: Colors.primaryLight,
@@ -527,31 +527,27 @@ const styles = StyleSheet.create({
   },
   eventListContainer: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
   },
   eventCard: {
     backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
-    marginBottom: Spacing.md,
+    borderRadius: 16,
+    marginBottom: Spacing.lg,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
   eventImageContainer: {
     width: '100%',
     height: 200,
-    backgroundColor: Colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: Colors.neutral.lightGray,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
   },
   eventImage: {
     width: '100%',
@@ -609,13 +605,18 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.bold,
   },
   eventInfoContainer: {
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.neutral.white,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   eventTitle: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
     marginBottom: Spacing.xs,
+    lineHeight: Typography.fontSize.xl * 1.2,
   },
   vibeContainer: {
     flexDirection: 'row',
@@ -627,14 +628,19 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.md,
     color: Colors.text.secondary,
   },
-  vibeButton: {
-    backgroundColor: Colors.secondary,
+  detailsButtonFullWidth: {
+    backgroundColor: Colors.neutral.black,
     borderRadius: 8,
     paddingVertical: Spacing.sm,
     alignItems: 'center',
+    marginTop: Spacing.sm,
+    width: '100%',
+    // Adicionado para garantir que o botão seja visível
+    borderWidth: 1,
+    borderColor: Colors.neutral.black,
   },
-  vibeButtonText: {
-    color: Colors.text.onSecondary,
+  detailsButtonText: {
+    color: Colors.neutral.white,
     fontSize: Typography.fontSize.md,
     fontWeight: Typography.fontWeight.bold,
   },
@@ -657,7 +663,25 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     paddingHorizontal: Spacing.xl,
   },
+
+  cardButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.sm,
+  },
+  detailsButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: Spacing.sm,
+  },
+  detailsButtonText: {
+    color: Colors.neutral.white,
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.bold,
+  },
 });
-
-
 

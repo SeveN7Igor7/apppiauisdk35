@@ -25,6 +25,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing } from '../constants/Spacing';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Importar useSafeAreaInsets
 
 // Importação dos estilos separados
 import { explorarStyles } from '../constants/ExplorarStyle';
@@ -68,6 +69,7 @@ export default function Explorar() {
   
   const { user } = useContext(AuthContext);
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets(); // Inicializar useSafeAreaInsets
 
   const categorias = [
     { id: 'todos', nome: 'Todos', icone: 'view-grid' },
@@ -470,31 +472,24 @@ export default function Explorar() {
           
           {evento.local && (
             <View style={explorarStyles.eventoInfoRow}>
-              <MaterialCommunityIcons name="map-marker" size={16} color={Colors.text.tertiary} />
-              <Text style={explorarStyles.eventoInfoText} numberOfLines={1}>{evento.local}</Text>
-            </View>
-          )}
-          
-          {evento.datainicio && (
-            <View style={explorarStyles.eventoInfoRow}>
-              <MaterialCommunityIcons name="calendar" size={16} color={Colors.text.tertiary} />
-              <Text style={explorarStyles.eventoInfoText}>{evento.datainicio}</Text>
-            </View>
-          )}
-
-          {/* Atividade do chat */}
-          {temAtividadeChat && (
-            <View style={[explorarStyles.eventoInfoRow, { marginTop: 4 }]}>
-              <MaterialCommunityIcons name="chat" size={16} color={Colors.primary.green} />
-              <Text style={[explorarStyles.eventoInfoText, { color: Colors.primary.green, fontWeight: '600' }]}>
-                {getMensagemAtividadeChat(evento.id)}
+              <MaterialCommunityIcons name="map-marker" size={14} color={Colors.text.secondary} />
+              <Text style={explorarStyles.eventoInfoText} numberOfLines={1}>
+                {evento.local}
               </Text>
             </View>
           )}
 
-          {/* Vibe do evento */}
+          {evento.datainicio && (
+            <View style={explorarStyles.eventoInfoRow}>
+              <MaterialCommunityIcons name="calendar" size={14} color={Colors.text.secondary} />
+              <Text style={explorarStyles.eventoInfoText} numberOfLines={1}>
+                {evento.datainicio} {evento.aberturaportas}
+              </Text>
+            </View>
+          )}
+
           <View style={explorarStyles.vibeContainer}>
-            <Text style={explorarStyles.vibeLabel}>Vibe atual:</Text>
+            <Text style={explorarStyles.vibeLabel}>Vibe do Evento:</Text>
             <View style={explorarStyles.vibeStars}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <MaterialCommunityIcons
@@ -515,17 +510,10 @@ export default function Explorar() {
   return (
     <SafeAreaView style={explorarStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.neutral.black} />
-      
-      {/* Header com fundo preto */}
-      <View style={explorarStyles.header}>
-        <View style={explorarStyles.headerContent}>
-          <Text style={explorarStyles.headerTitle}>Explorar Eventos</Text>
-          <TouchableOpacity style={explorarStyles.profileButton}>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Barra de Pesquisa */}
+      {/* Cabeçalho */}
+      <View style={[explorarStyles.header, { paddingTop: insets.top + (Platform.OS === "android" ? 0 : 0) }]}>
+        <Text style={explorarStyles.headerTitle}>Explorar Eventos</Text>
+      </View> 
       <View style={explorarStyles.searchContainer}>
         <View style={explorarStyles.searchInputContainer}>
           <MaterialCommunityIcons name="magnify" size={20} color={Colors.text.tertiary} />
@@ -543,7 +531,6 @@ export default function Explorar() {
           )}
         </View>
       </View>
-
       {loading ? (
         <View style={explorarStyles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary.purple} />
@@ -573,4 +560,5 @@ export default function Explorar() {
     </SafeAreaView>
   );
 }
+
 

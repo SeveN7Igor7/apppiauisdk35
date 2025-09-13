@@ -15,30 +15,24 @@ export const explorarStyles = StyleSheet.create({
   
   // Header Styles
   header: {
-    backgroundColor: Colors.neutral.black,
-    paddingVertical: Spacing.xl,
-    paddingHorizontal: Spacing.container.horizontal,
-    elevation: Spacing.elevation.high,
-    shadowColor: Colors.shadow.dark,
-    shadowOffset: Spacing.shadowOffset.medium,
-    shadowOpacity: 0.3,
-    shadowRadius: Spacing.shadowRadius.medium,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  backgroundColor: Colors.neutral.black,
+  paddingTop: Spacing.lg, // menor espaço em cima
+  paddingBottom: Spacing.md, // menor espaço embaixo
+  paddingHorizontal: Spacing.container.horizontal,
+  elevation: Spacing.elevation.high,
+  shadowColor: Colors.shadow.dark,
+  shadowOffset: Spacing.shadowOffset.medium,
+  shadowOpacity: 0.3,
+  shadowRadius: Spacing.shadowRadius.medium,
+},
+
   headerTitle: {
     ...Typography.styles.h2,
     color: Colors.text.onPrimary,
-    flex: 1,
     textAlign: 'center',
     marginHorizontal: Spacing.md,
   },
-  profileButton: {
-    padding: Spacing.xs,
-  },
+
   
   // Search Container
   searchContainer: {
@@ -423,3 +417,5 @@ export const explorarStyles = StyleSheet.create({
     marginLeft: Spacing.sm,
   },
 });
+
+
