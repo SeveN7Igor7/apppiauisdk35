@@ -511,7 +511,7 @@ export default function Explorar() {
     <SafeAreaView style={explorarStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.neutral.black} />
       {/* Cabeçalho */}
-      <View style={[explorarStyles.header, { paddingTop: insets.top + (Platform.OS === "android" ? 0 : 0) }]}>
+      <View style={[explorarStyles.header, { paddingTop: insets.top + (Platform.OS === "android" ? 10 : 0) }]}>
         <Text style={explorarStyles.headerTitle}>Explorar Eventos</Text>
       </View> 
       <View style={explorarStyles.searchContainer}>
