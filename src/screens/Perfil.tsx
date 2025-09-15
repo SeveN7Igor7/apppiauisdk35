@@ -1150,7 +1150,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingBottom: 10,
     height: Platform.OS === "ios" ? 90 : 70, // Altura fixa para o cabeçalho, ajustada para iOS
-    paddingTop: Platform.OS === "ios" ? insets.top : 0, // Ajuste dinâmico para iOS
+    // Atenção: não é possível usar `insets` dentro do StyleSheet (fora do componente)
+    // O paddingTop dinâmico já é aplicado no componente via style inline
+    paddingTop: 0,
   },
   headerLogo: {
     width: 70, 
