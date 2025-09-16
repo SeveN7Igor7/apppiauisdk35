@@ -72,13 +72,12 @@ export default function Social() {
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-  const [viewMode, setViewMode] = useState<'search' | 'profile' | 'requests'>('search');
+  const [viewMode, setViewMode] = useState<'search' | 'profile'>('search');
   const [profileLoading, setProfileLoading] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<UserSearchResult[]>([]);
-  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
-  const [acceptedFriends, setAcceptedFriends] = useState<UserSearchResult[]>([]);
-  const [friendsLoading, setFriendsLoading] = useState(false);
-  const [isFriend, setIsFriend] = useState(false);
+  const [followingList, setFollowingList] = useState<UserSearchResult[]>([]);
+  const [followingLoading, setFollowingLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [showAllFollowing, setShowAllFollowing] = useState(false);
 
   // Animação para transição de tela
   const screenTransitionAnim = useState(new Animated.Value(0))[0];
@@ -168,7 +167,7 @@ export default function Social() {
       
       // Buscar dados sociais (avatar, amigos, privacidade, etc.)
       let socialData = null;
-      let friendCount = 0;
+      let followerCount = 0;
       let eventsBuyVisible = true; // Default para visível
       let avatarUrl = userData.avatar; // Fallback para avatar existente
 
@@ -176,9 +175,9 @@ export default function Social() {
         const socialSnapshot = await get(ref(databaseSocial, `users/cpf/${cpf}`));
         if (socialSnapshot.exists()) {
           socialData = socialSnapshot.val();
-          // Contagem de amigos
-          if (socialData.config?.friends) {
-            friendCount = Object.keys(socialData.config.friends).length;
+          // Contagem de seguidores
+          if (socialData.config?.followers) {
+            followerCount = Object.keys(socialData.config.followers).length;
           }
           // Privacidade de eventos
           if (socialData.config?.privacy?.eventsBuyVisible !== undefined) {
@@ -209,23 +208,21 @@ export default function Social() {
         avatar: avatarUrl,
         ingressoscomprados: userData.ingressoscomprados,
         eventosParticipados,
-        friendCount,
+        friendCount: followerCount,
         privacy: { eventsBuyVisible },
       };
 
       setSelectedUser(profile);
       setViewMode("profile");
 
-      // Verificar se o usuário logado já é amigo do perfil carregado
-      let friendStatus = false;
+      // Verificar se o usuário logado já segue o perfil carregado
+      let followStatus = false;
       if (user && user.cpf) {
-        const myFriendRef = ref(databaseSocial, `users/cpf/${user.cpf}/config/friends/${cpf}`);
-        const myFriendSnapshot = await get(myFriendRef);
-        if (myFriendSnapshot.exists() && myFriendSnapshot.val().status === 'accepted' && myFriendSnapshot.val().autorizado === true) {
-          friendStatus = true;
-        }
+        const myFollowingRef = ref(databaseSocial, `users/cpf/${user.cpf}/config/following/${cpf}`);
+        const myFollowingSnapshot = await get(myFollowingRef);
+        if (myFollowingSnapshot.exists()) followStatus = true;
       }
-      setIsFriend(friendStatus);
+      setIsFollowing(followStatus);
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
       Alert.alert('Erro', 'Não foi possível carregar o perfil do usuário');
@@ -234,43 +231,32 @@ export default function Social() {
     }
   };
 
-  // Função para carregar solicitações pendentes
-  const loadPendingRequests = async () => {
+  // Carregar lista de perfis que eu sigo
+  const loadFollowing = async () => {
     if (!user || !user.cpf) return;
 
+    setFollowingLoading(true);
     try {
-      const friendsRef = ref(databaseSocial, `users/cpf/${user.cpf}/config/friends`);
-      const snapshot = await get(friendsRef);
-      
+      const followingRef = ref(databaseSocial, `users/cpf/${user.cpf}/config/following`);
+      const snapshot = await get(followingRef);
+
+      const list: UserSearchResult[] = [];
+
       if (snapshot.exists()) {
-        const friends = snapshot.val();
-        const pendingList: UserSearchResult[] = [];
-        
-        for (const cpf in friends) {
-          const friendData = friends[cpf];
-          // Verificar se é uma solicitação pendente que EU recebi (não enviei)
-          if (friendData.status === 'pending' && 
-              friendData.autorizado === false && 
-              friendData.initiatedBy !== user.cpf) {
-            
-            // Buscar dados do usuário que enviou a solicitação
+        const following = snapshot.val();
+        for (const cpf in following) {
             try {
               const userSnapshot = await get(ref(database, `users/cpf/${cpf}`));
               if (userSnapshot.exists()) {
                 const userData = userSnapshot.val();
-                
-                // Buscar avatar do banco social se disponível
                 let avatar = userData.avatar;
                 try {
                   const socialSnapshot = await get(ref(databaseSocial, `users/cpf/${cpf}`));
-                  if (socialSnapshot.exists() && socialSnapshot.val().avatar) {
-                    avatar = socialSnapshot.val().avatar;
-                  }
-                } catch (error) {
-                  console.log('Avatar social não encontrado para:', cpf);
+                if (socialSnapshot.exists() && socialSnapshot.val().config?.perfilimage?.imageperfilurl) {
+                  avatar = socialSnapshot.val().config.perfilimage.imageperfilurl;
                 }
-                
-                pendingList.push({
+              } catch {}
+              list.push({
                   cpf,
                   fullname: userData.fullname || 'Usuário',
                   email: userData.email || '',
@@ -279,160 +265,58 @@ export default function Social() {
                 });
               }
             } catch (error) {
-              console.error(`Erro ao buscar dados do usuário ${cpf}:`, error);
-            }
-          }
-        }
-        
-        setPendingRequests(pendingList);
-        setPendingRequestsCount(pendingList.length);
-      } else {
-        setPendingRequests([]);
-        setPendingRequestsCount(0);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar solicitações pendentes:', error);
-    }
-  };
-
-  // Função para aceitar solicitação de amizade
-  const acceptFriendRequest = async (senderCpf: string) => {
-    if (!user || !user.cpf) return;
-
-    try {
-      // Atualizar no meu caminho (quem recebeu)
-      const myFriendRef = ref(databaseSocial, `users/cpf/${user.cpf}/config/friends/${senderCpf}`);
-      await update(myFriendRef, {
-        status: 'accepted',
-        autorizado: true
-      });
-
-      // Atualizar no caminho do remetente (quem enviou)
-      const senderFriendRef = ref(databaseSocial, `users/cpf/${senderCpf}/config/friends/${user.cpf}`);
-      await update(senderFriendRef, {
-        status: 'accepted',
-        autorizado: true
-      });
-
-      Alert.alert('Sucesso', 'Solicitação de amizade aceita!');
-      
-      // Recarregar solicitações pendentes e amigos aceitos
-      await loadPendingRequests();
-      await loadAcceptedFriends();
-    } catch (error) {
-      console.error('Erro ao aceitar solicitação:', error);
-      Alert.alert('Erro', 'Não foi possível aceitar a solicitação de amizade.');
-    }
-  };
-
-  // Função para carregar amigos aceitos
-  const loadAcceptedFriends = async () => {
-    if (!user || !user.cpf) return;
-
-    setFriendsLoading(true);
-    try {
-      const friendsRef = ref(databaseSocial, `users/cpf/${user.cpf}/config/friends`);
-      const snapshot = await get(friendsRef);
-      
-      const friendsList: UserSearchResult[] = [];
-      
-      // Adicionar o próprio usuário primeiro
-      try {
-        const myUserSnapshot = await get(ref(database, `users/cpf/${user.cpf}`));
-        if (myUserSnapshot.exists()) {
-          const myUserData = myUserSnapshot.val();
-          
-          // Buscar avatar do banco social se disponível
-          let myAvatar = myUserData.avatar;
-          try {
-            const mySocialSnapshot = await get(ref(databaseSocial, `users/cpf/${user.cpf}`));
-            if (mySocialSnapshot.exists() && mySocialSnapshot.val().avatar) {
-              myAvatar = mySocialSnapshot.val().avatar;
-            }
-          } catch (error) {
-            console.log('Avatar social não encontrado para o próprio usuário');
-          }
-          
-          friendsList.push({
-            cpf: user.cpf,
-            fullname: myUserData.fullname || 'Você',
-            email: myUserData.email || '',
-            telefone: myUserData.telefone || '',
-            avatar: myAvatar,
-          });
-        }
-      } catch (error) {
-        console.error('Erro ao buscar dados do próprio usuário:', error);
-      }
-      
-      // Adicionar amigos aceitos
-      if (snapshot.exists()) {
-        const friends = snapshot.val();
-        
-        for (const cpf in friends) {
-          const friendData = friends[cpf];
-          // Verificar se é um amigo aceito
-          if (friendData.status === 'accepted' && friendData.autorizado === true) {
-            
-            // Buscar dados do amigo
-            try {
-              const userSnapshot = await get(ref(database, `users/cpf/${cpf}`));
-              if (userSnapshot.exists()) {
-                const userData = userSnapshot.val();
-                
-                // Buscar avatar do banco social se disponível
-                let avatar = userData.avatar;
-                try {
-                  const socialSnapshot = await get(ref(databaseSocial, `users/cpf/${cpf}`));
-                  if (socialSnapshot.exists() && socialSnapshot.val().avatar) {
-                    avatar = socialSnapshot.val().avatar;
-                  }
-                } catch (error) {
-                  console.log('Avatar social não encontrado para:', cpf);
-                }
-                
-                friendsList.push({
-                  cpf,
-                  fullname: userData.fullname || 'Usuário',
-                  email: userData.email || '',
-                  telefone: userData.telefone || '',
-                  avatar,
-                });
-              }
-            } catch (error) {
-              console.error(`Erro ao buscar dados do amigo ${cpf}:`, error);
-            }
+            console.error(`Erro ao buscar dados do usuário seguido ${cpf}:`, error);
           }
         }
       }
-      
-      setAcceptedFriends(friendsList);
+
+      setFollowingList(list);
     } catch (error) {
-      console.error('Erro ao carregar amigos aceitos:', error);
+      console.error('Erro ao carregar lista de seguindo:', error);
     } finally {
-      setFriendsLoading(false);
+      setFollowingLoading(false);
     }
   };
-  const rejectFriendRequest = async (senderCpf: string) => {
-    if (!user || !user.cpf) return;
+
+  // Seguir e deixar de seguir
+  const handleFollow = async (targetCpf: string) => {
+    if (!user || !user.cpf) {
+      Alert.alert('Erro', 'Você precisa estar logado para seguir pessoas.');
+      return;
+    }
+    if (user.cpf === targetCpf) return;
 
     try {
-      // Remover do meu caminho (quem recebeu)
-      const myFriendRef = ref(databaseSocial, `users/cpf/${user.cpf}/config/friends/${senderCpf}`);
-      await set(myFriendRef, null);
+      // following do meu usuário
+      const myFollowingRef = ref(databaseSocial, `users/cpf/${user.cpf}/config/following/${targetCpf}`);
+      // followers do usuário alvo
+      const targetFollowersRef = ref(databaseSocial, `users/cpf/${targetCpf}/config/followers/${user.cpf}`);
 
-      // Remover do caminho do remetente (quem enviou)
-      const senderFriendRef = ref(databaseSocial, `users/cpf/${senderCpf}/config/friends/${user.cpf}`);
-      await set(senderFriendRef, null);
+      const timestamp = Date.now();
+      await set(myFollowingRef, { since: timestamp });
+      await set(targetFollowersRef, { since: timestamp });
 
-      Alert.alert('Sucesso', 'Solicitação de amizade rejeitada.');
-      
-      // Recarregar solicitações pendentes e amigos aceitos
-      await loadPendingRequests();
-      await loadAcceptedFriends();
+      setIsFollowing(true);
+      Alert.alert('Agora você está seguindo', selectedUser?.fullname || 'este usuário');
+      await loadFollowing();
     } catch (error) {
-      console.error('Erro ao rejeitar solicitação:', error);
-      Alert.alert('Erro', 'Não foi possível rejeitar a solicitação de amizade.');
+      console.error('Erro ao seguir usuário:', error);
+      Alert.alert('Erro', 'Não foi possível seguir este usuário.');
+    }
+  };
+
+  const handleUnfollow = async (targetCpf: string) => {
+    if (!user || !user.cpf) return;
+    try {
+      const myFollowingRef = ref(databaseSocial, `users/cpf/${user.cpf}/config/following/${targetCpf}`);
+      const targetFollowersRef = ref(databaseSocial, `users/cpf/${targetCpf}/config/followers/${user.cpf}`);
+      await set(myFollowingRef, null);
+      await set(targetFollowersRef, null);
+      setIsFollowing(false);
+      await loadFollowing();
+          } catch (error) {
+      console.error('Erro ao deixar de seguir:', error);
+      Alert.alert('Erro', 'Não foi possível deixar de seguir.');
     }
   };
   const processarEventosParticipados = async (ingressosComprados: any): Promise<EventoParticipado[]> => {
@@ -478,80 +362,9 @@ export default function Social() {
     });
   };
 
-  // Lógica para adicionar amigo
+  // Mantido por compatibilidade: redireciona para seguir
   const handleAddFriend = async (targetCpf: string) => {
-    if (!user || !user.cpf) {
-      Alert.alert('Erro', 'Você precisa estar logado para adicionar amigos.');
-      return;
-    }
-    if (user.cpf === targetCpf) {
-      Alert.alert('Erro', 'Você não pode adicionar a si mesmo como amigo.');
-      return;
-    }
-
-    try {
-      // Caminho para a solicitação de amizade do usuário logado para o alvo
-      const myFriendRequestRef = ref(databaseSocial, `users/cpf/${user.cpf}/config/friends/${targetCpf}`);
-      const myFriendRequestSnapshot = await get(myFriendRequestRef);
-
-      // Caminho para a solicitação de amizade do alvo para o usuário logado (para verificar se já existe uma solicitação pendente)
-      const targetFriendRequestRef = ref(databaseSocial, `users/cpf/${targetCpf}/config/friends/${user.cpf}`);
-      const targetFriendRequestSnapshot = await get(targetFriendRequestRef);
-
-      // Verificar se já são amigos (status accepted e autorizado true)
-      if (myFriendRequestSnapshot.exists() && 
-          myFriendRequestSnapshot.val().status === 'accepted' && 
-          myFriendRequestSnapshot.val().autorizado === true) {
-        Alert.alert('Amigo', 'Vocês já são amigos!');
-        return;
-      }
-
-      // Se o alvo já enviou uma solicitação para mim, aceitar a amizade
-      if (targetFriendRequestSnapshot.exists() && 
-          targetFriendRequestSnapshot.val().status === 'pending' && 
-          targetFriendRequestSnapshot.val().autorizado === false) {
-        // Aceitar a amizade - atualizar ambos os caminhos
-        await update(myFriendRequestRef, { 
-          status: 'accepted', 
-          autorizado: true, 
-          initiatedBy: targetCpf 
-        });
-        await update(targetFriendRequestRef, { 
-          status: 'accepted', 
-          autorizado: true, 
-          initiatedBy: targetCpf 
-        });
-        Alert.alert('Sucesso', `Você e ${selectedUser?.fullname || 'o usuário'} agora são amigos!`);
-        return;
-      }
-
-      // Se eu já enviei uma solicitação pendente
-      if (myFriendRequestSnapshot.exists() && 
-          myFriendRequestSnapshot.val().status === 'pending') {
-        Alert.alert('Aguardando', 'Você já enviou uma solicitação de amizade para este usuário.');
-        return;
-      }
-
-      // Enviar nova solicitação de amizade
-      // Registrar no meu caminho (quem enviou)
-      await set(myFriendRequestRef, { 
-        status: 'pending', 
-        autorizado: false, 
-        initiatedBy: user.cpf 
-      });
-
-      // Registrar no caminho do destinatário (quem recebeu)
-      await set(targetFriendRequestRef, { 
-        status: 'pending', 
-        autorizado: false, 
-        initiatedBy: user.cpf 
-      });
-
-      Alert.alert('Sucesso', 'Solicitação de amizade enviada!');
-    } catch (error) {
-      console.error('Erro ao adicionar amigo:', error);
-      Alert.alert('Erro', 'Não foi possível enviar a solicitação de amizade.');
-    }
+    return handleFollow(targetCpf);
   };
 
   // Debounce para busca
@@ -563,16 +376,17 @@ export default function Social() {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  // Carregar solicitações pendentes e amigos aceitos quando o componente monta
+  // Carregar lista de seguindo quando o componente monta
   useEffect(() => {
     if (user && user.cpf) {
-      loadPendingRequests();
-      loadAcceptedFriends();
+      loadFollowing();
     }
   }, [user]);
 
   // Renderizar item de resultado de busca
-  const renderSearchResult = ({ item }: { item: UserSearchResult }) => (
+  const renderSearchResult = ({ item }: { item: UserSearchResult }) => {
+    const alreadyFollowing = !!followingList.find((u) => u.cpf === item.cpf);
+    return (
     <TouchableOpacity
       style={styles.searchResultItem}
       onPress={() => loadUserProfile(item.cpf)}
@@ -596,10 +410,10 @@ export default function Social() {
         </View>
       </View>
       
-      {user && user.cpf !== item.cpf && (
+        {user && user.cpf !== item.cpf && !alreadyFollowing && (
         <TouchableOpacity 
           style={styles.addFriendButtonSmall}
-          onPress={() => handleAddFriend(item.cpf)}
+            onPress={() => handleFollow(item.cpf)}
         >
           <MaterialCommunityIcons name="account-plus" size={20} color="#fff" />
         </TouchableOpacity>
@@ -612,8 +426,9 @@ export default function Social() {
       />
     </TouchableOpacity>
   );
+  };
 
-  // Renderizar item de amigo aceito
+  // Renderizar item da lista de seguindo
   const renderFriendItem = ({ item }: { item: UserSearchResult }) => (
     <TouchableOpacity
       style={styles.friendItem}
@@ -650,45 +465,7 @@ export default function Social() {
       )}
     </TouchableOpacity>
   );
-  const renderPendingRequest = ({ item }: { item: UserSearchResult }) => (
-    <View style={styles.pendingRequestItem}>
-      <View style={styles.userInfo}>
-        {item.avatar ? (
-          <Image source={{ uri: item.avatar }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Text style={styles.avatarText}>
-              {item.fullname.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-        
-        <View style={styles.userDetails}>
-          <Text style={styles.userName}>{item.fullname}</Text>
-          <Text style={styles.userContact}>
-            {item.email || item.telefone}
-          </Text>
-          <Text style={styles.requestText}>Quer ser seu amigo</Text>
-        </View>
-      </View>
-      
-      <View style={styles.requestActions}>
-        <TouchableOpacity 
-          style={styles.acceptButton}
-          onPress={() => acceptFriendRequest(item.cpf)}
-        >
-          <MaterialCommunityIcons name="check" size={20} color="#fff" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.rejectButton}
-          onPress={() => rejectFriendRequest(item.cpf)}
-        >
-          <MaterialCommunityIcons name="close" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  // Removido: tela de solicitações pendentes (modelo de amizade)
   const renderEvento = ({ item }: { item: EventoParticipado }) => (
     <View style={styles.eventoCard}>
       {item.imageurl ? (
@@ -696,7 +473,7 @@ export default function Social() {
       ) : (
         <View style={[styles.eventoImage, styles.eventoImagePlaceholder]}>
           <MaterialCommunityIcons 
-            name="calendar-music" 
+            name="calendar-blank" 
             size={32} 
             color={Colors.textSecondary} 
           />
@@ -720,72 +497,10 @@ export default function Social() {
     </View>
   );
 
-  // Tela de solicitações pendentes
-  const renderRequestsScreen = () => (
-    <View style={styles.container}>
-      <View style={styles.requestsHeader}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => setViewMode('search')}
-        >
-          <MaterialCommunityIcons 
-            name="arrow-left" 
-            size={24} 
-            color={Colors.textPrimary} 
-          />
-        </TouchableOpacity>
-        
-        <Text style={styles.requestsHeaderTitle}>
-          Solicitações de Amizade ({pendingRequestsCount})
-        </Text>
-      </View>
-
-      {pendingRequests.length > 0 ? (
-        <FlatList
-          data={pendingRequests}
-          keyExtractor={(item) => item.cpf}
-          renderItem={renderPendingRequest}
-          style={styles.requestsList}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <View style={styles.emptyRequestsContainer}>
-          <MaterialCommunityIcons 
-            name="account-heart" 
-            size={64} 
-            color={Colors.textSecondary} 
-          />
-          <Text style={styles.emptyRequestsText}>Nenhuma solicitação pendente</Text>
-          <Text style={styles.emptyRequestsSubtext}>
-            Quando alguém enviar uma solicitação de amizade, ela aparecerá aqui
-          </Text>
-        </View>
-      )}
-    </View>
-  );
+  // Removido: renderRequestsScreen
   const renderSearchScreen = () => (
     <View style={styles.container}>
-      {/* Botão de solicitações com notificação */}
-      {pendingRequestsCount > 0 && (
-        <View style={styles.requestsButtonContainer}>
-          <TouchableOpacity
-            style={styles.requestsButton}
-            onPress={() => setViewMode('requests')}
-          >
-            <MaterialCommunityIcons 
-              name="account-heart" 
-              size={20} 
-              color="#fff" 
-            />
-            <Text style={styles.requestsButtonText}>
-              Solicitações de Amizade
-            </Text>
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationText}>{pendingRequestsCount}</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Banner de boas-vindas sem solicitações */}
 
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
@@ -847,37 +562,67 @@ export default function Social() {
               size={80} 
               color={Colors.primary} 
             />
-            <Text style={styles.welcomeTitle}>Encontre Amigos</Text>
+            <Text style={styles.welcomeTitle}>Descubra Pessoas</Text>
             <Text style={styles.welcomeText}>
-              Busque por usuários usando email, telefone ou nome para ver seus perfis e eventos participados
+              Busque por usuários usando email, telefone ou nome para ver perfis e eventos participados
             </Text>
           </View>
 
-          {/* Seção de Amigos */}
-          {acceptedFriends.length > 0 && (
+          {/* Seção de Seguindo */}
+          {followingList.length > 0 && (
             <View style={styles.friendsSection}>
-              <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderFollowing}>
                 <MaterialCommunityIcons 
                   name="account-group" 
                   size={20} 
                   color={Colors.primary} 
                 />
-                <Text style={styles.sectionTitle}>Amigos ({acceptedFriends.length})</Text>
+                <Text style={styles.sectionTitle}>Seguindo ({followingList.length})</Text>
               </View>
               
-              {friendsLoading ? (
+              {followingLoading ? (
                 <View style={styles.friendsLoadingContainer}>
                   <ActivityIndicator size="small" color={Colors.primary} />
-                  <Text style={styles.friendsLoadingText}>Carregando amigos...</Text>
+                  <Text style={styles.friendsLoadingText}>Carregando sua lista...</Text>
                 </View>
               ) : (
+                <>
+                  {/* Preview horizontal quando há muitos itens */}
+                  {followingList.length > 6 && !showAllFollowing ? (
                 <FlatList
-                  data={acceptedFriends}
+                      data={followingList.slice(0, 10)}
+                      keyExtractor={(item) => item.cpf}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity style={{ marginRight: 12, alignItems: 'center' }} onPress={() => loadUserProfile(item.cpf)}>
+                          {item.avatar ? (
+                            <Image source={{ uri: item.avatar }} style={{ width: 56, height: 56, borderRadius: 28, marginBottom: 6 }} />
+                          ) : (
+                            <View style={[styles.avatarSmall, styles.avatarPlaceholder]} />
+                          )}
+                          <Text style={{ fontSize: 12, color: Colors.textPrimary }} numberOfLines={1}>{item.fullname}</Text>
+                        </TouchableOpacity>
+                      )}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ paddingHorizontal: 16 }}
+                    />
+                  ) : (
+                    <FlatList
+                      data={showAllFollowing ? followingList : followingList.slice(0, 6)}
                   keyExtractor={(item) => item.cpf}
                   renderItem={renderFriendItem}
                   showsVerticalScrollIndicator={false}
                   scrollEnabled={false}
                 />
+                  )}
+                  {followingList.length > 6 && (
+                    <TouchableOpacity style={{ alignSelf: 'center', marginTop: 8 }} onPress={() => setShowAllFollowing(!showAllFollowing)}>
+                      <Text style={{ color: Colors.primary, fontWeight: '600' }}>
+                        {showAllFollowing ? 'Ver menos' : 'Ver todos'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
             </View>
           )}
@@ -947,25 +692,25 @@ export default function Social() {
 
       {selectedUser.friendCount !== undefined && (
         <Text style={styles.profileFriendCount}>
-          {selectedUser.friendCount} amigo{selectedUser.friendCount !== 1 ? 's' : ''}
+          {selectedUser.friendCount} seguidor{selectedUser.friendCount !== 1 ? 'es' : ''}
         </Text>
       )}
 
-      {user && user.cpf !== selectedUser.cpf && !isFriend && (
+      {user && user.cpf !== selectedUser.cpf && !isFollowing && (
         <TouchableOpacity 
           style={styles.addFriendButtonLarge}
-          onPress={() => handleAddFriend(selectedUser.cpf)}
+          onPress={() => handleFollow(selectedUser.cpf)}
         >
           <MaterialCommunityIcons name="account-plus" size={20} color="#fff" />
-          <Text style={styles.addFriendButtonText}>Adicionar Amigo</Text>
+          <Text style={styles.addFriendButtonText}>Seguir</Text>
         </TouchableOpacity>
       )}
 
-      {user && user.cpf !== selectedUser.cpf && isFriend && (
-        <View style={styles.alreadyFriendContainer}>
+      {user && user.cpf !== selectedUser.cpf && isFollowing && (
+        <TouchableOpacity style={styles.alreadyFriendContainer} onPress={() => handleUnfollow(selectedUser.cpf)}>
           <MaterialCommunityIcons name="account-check" size={20} color={Colors.success} />
-          <Text style={styles.alreadyFriendText}>Vocês já são amigos!</Text>
-        </View>
+          <Text style={styles.alreadyFriendText}>Seguindo • Tocar para deixar de seguir</Text>
+        </TouchableOpacity>
       )}
     </View>
   </View>
@@ -1064,8 +809,6 @@ export default function Social() {
           </View>
         ) : viewMode === 'search' ? (
           renderSearchScreen()
-        ) : viewMode === 'requests' ? (
-          renderRequestsScreen()
         ) : (
           renderProfileScreen()
         )}
@@ -1510,22 +1253,17 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
   },
-  // Estilos para seção de amigos aceitos
+  // Estilos para seção de seguindo
   friendsSection: {
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
-  sectionHeader: {
+  sectionHeaderFollowing: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginLeft: 8,
-  },
+  
   friendItem: {
     flexDirection: 'row',
     alignItems: 'center',

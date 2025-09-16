@@ -24,7 +24,7 @@ import { databaseSocial } from '../services/firebaseappdb';
 import { AuthContext } from '../contexts/AuthContext';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import LogoImage from '../images/logo.png';
+const LogoImage = require('../../assets/logo.png');
 
 const { width } = Dimensions.get('window');
 
@@ -55,9 +55,10 @@ interface EventoParticipado {
 
 // ==================== COMPONENTES PRINCIPAIS ====================
 // Componente de Login
-const LoginScreen = ({ cpfInput, setCpfInput, password, setPassword, fazerLogin, loading }) => {
+type LoginScreenProps = { cpfInput: string; setCpfInput: (v: string) => void; password: string; setPassword: (v: string) => void; fazerLogin: () => void; loading: boolean };
+const LoginScreen = ({ cpfInput, setCpfInput, password, setPassword, fazerLogin, loading }: LoginScreenProps) => {
   // Função para abrir URLs externas
-  const openURL = async (url) => {
+  const openURL = async (url: string) => {
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) {
@@ -152,7 +153,8 @@ const LoginScreen = ({ cpfInput, setCpfInput, password, setPassword, fazerLogin,
 };
 
 // Componente de Opção de Perfil Melhorado
-const ProfileOption = ({ icon, text, onPress, color = Colors.primary }) => {
+type ProfileOptionProps = { icon: any; text: string; onPress: () => void; color?: string };
+const ProfileOption = ({ icon, text, onPress, color = Colors.primary }: ProfileOptionProps) => {
   const scaleAnim = useState(new Animated.Value(1))[0];
 
   const handlePressIn = () => {
@@ -190,13 +192,13 @@ const ProfileOption = ({ icon, text, onPress, color = Colors.primary }) => {
 };
 
 // Componente de Grid de Eventos Participados (estilo Instagram)
-const EventosParticipados = ({ eventosParticipados, navigation }) => {
+const EventosParticipados = ({ eventosParticipados, navigation }: { eventosParticipados: EventoParticipado[]; navigation: any }) => {
   // Configurações responsivas baseadas na quantidade de eventos
   const getGridConfig = () => {
     return { columns: 3, itemSize: (width - 64) / 3 }; // 3 colunas, com padding horizontal de 32 em cada lado (64 total)
   };
 
-  const { columns, itemSize } = getGridConfig(eventosParticipados.length);
+  const { columns, itemSize } = getGridConfig();
 
   const renderEventoItem = ({ item }: { item: EventoParticipado }) => {
     return (
@@ -295,7 +297,7 @@ const EmBreve = () => (
 );
 
 // ==================== COMPONENTE PRINCIPAL ====================
-export default function Perfil({ navigation }) {
+export default function Perfil({ navigation }: { navigation: any }) {
   const [cpfInput, setCpfInput] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -305,6 +307,7 @@ export default function Perfil({ navigation }) {
   const [activeTab, setActiveTab] = useState("eventos"); // Estado para controlar a aba ativa
   const [followerCount, setFollowerCount] = useState(0); // Novo estado para seguidores
   const [attendedEventsCount, setAttendedEventsCount] = useState(0); // Novo estado para eventos frequentados
+  const [followingCount, setFollowingCount] = useState(0); // Novo estado para seguindo
       
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(30))[0];
@@ -331,6 +334,7 @@ export default function Perfil({ navigation }) {
       fetchProfileImage(user.cpf);
       carregarEventosParticipados(user.cpf);
       fetchFollowerCount(user.cpf); // Chamar a nova função para buscar seguidores
+      fetchFollowingCount(user.cpf); // Chamar a nova função para buscar seguindo
     } else {
       fadeAnim.setValue(0);
       slideAnim.setValue(30);
@@ -360,11 +364,11 @@ export default function Perfil({ navigation }) {
   const fetchFollowerCount = async (cpf: string) => {
     if (!cpf) return;
     try {
-      const friendsRef = ref(databaseSocial, `users/cpf/${cpf}/config/friends`);
-      const snapshot = await get(friendsRef);
+      const followersRef = ref(databaseSocial, `users/cpf/${cpf}/config/followers`);
+      const snapshot = await get(followersRef);
       if (snapshot.exists()) {
-        const friendsData = snapshot.val();
-        const count = Object.keys(friendsData).length;
+        const followersData = snapshot.val();
+        const count = Object.keys(followersData).length;
         setFollowerCount(count);
       } else {
         setFollowerCount(0);
@@ -372,6 +376,24 @@ export default function Perfil({ navigation }) {
     } catch (error) {
       console.error("Erro ao buscar contagem de seguidores:", error);
       setFollowerCount(0);
+    }
+  };
+
+  const fetchFollowingCount = async (cpf: string) => {
+    if (!cpf) return;
+    try {
+      const followingRef = ref(databaseSocial, `users/cpf/${cpf}/config/following`);
+      const snapshot = await get(followingRef);
+      if (snapshot.exists()) {
+        const followingData = snapshot.val();
+        const count = Object.keys(followingData).length;
+        setFollowingCount(count);
+      } else {
+        setFollowingCount(0);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar contagem de seguindo:", error);
+      setFollowingCount(0);
     }
   };
 
@@ -497,7 +519,7 @@ export default function Perfil({ navigation }) {
     );
   };
 
-  const handleTabChange = (tab) => {
+  const handleTabChange = (tab: 'eventos' | 'social') => {
     Animated.timing(contentAnim, {
       toValue: 0,
       duration: 150,
@@ -574,6 +596,10 @@ export default function Perfil({ navigation }) {
                   <Text style={styles.profileStatNumber}>{followerCount}</Text>
                   <Text style={styles.profileStatLabel}>Seguidores</Text>
                 </View>
+                <View style={styles.profileStatItem}>
+                  <Text style={styles.profileStatNumber}>{followingCount}</Text>
+                  <Text style={styles.profileStatLabel}>Seguindo</Text>
+                </View>
               </View>
             </View>
 
@@ -632,7 +658,7 @@ export default function Perfil({ navigation }) {
               />
               <ProfileOption 
                 icon="people-outline"
-                text="Encontrar Amigos"
+                text="Descobrir Pessoas"
                 onPress={() => navigation.navigate("Social")}
                 color={Colors.accent}
               />
@@ -675,6 +701,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: Colors.background,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
   },
   loadingText: {
     marginTop: 12,
@@ -864,6 +895,16 @@ const styles = StyleSheet.create({
     borderRadius: 45,
     borderWidth: 3,
     borderColor: Colors.primary,
+  },
+  profileImagePlaceholder: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   editProfileImageButton: {
     position: 'absolute',
@@ -1155,8 +1196,8 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   headerLogo: {
-    width: 70, 
-    height: 35, 
+    width: 90, 
+    height: 90, 
   },
   // Estilos para a seção "Em Breve"
   emBreveContainer: {
