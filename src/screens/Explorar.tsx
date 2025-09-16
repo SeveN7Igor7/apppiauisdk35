@@ -2,7 +2,6 @@ import React, { useEffect, useState, useContext } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   Platform,
   Image,
   TouchableOpacity,
@@ -25,7 +24,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing } from '../constants/Spacing';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Importar useSafeAreaInsets
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 
 // Importação dos estilos separados
 import { explorarStyles } from '../constants/ExplorarStyle';
@@ -508,12 +507,16 @@ export default function Explorar() {
   };
 
   return (
-    <SafeAreaView style={explorarStyles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.neutral.black} />
-      {/* Cabeçalho */}
-      <View style={[explorarStyles.header, { paddingTop: insets.top + (Platform.OS === "android" ? 10 : 0) }]}>
-        <Text style={explorarStyles.headerTitle}>Explorar Eventos</Text>
-      </View> 
+    <SafeAreaView style={explorarStyles.container} edges={['left','right','bottom']}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      {/* Cabeçalho com SafeArea topo separado */}
+      <SafeAreaView style={explorarStyles.headerTopSafe} edges={['top']}>
+        <View style={explorarStyles.header}>
+          <View style={explorarStyles.headerContent}>
+            <Text style={explorarStyles.headerTitle}>Explorar Eventos</Text>
+          </View>
+        </View>
+      </SafeAreaView>
       <View style={explorarStyles.searchContainer}>
         <View style={explorarStyles.searchInputContainer}>
           <MaterialCommunityIcons name="magnify" size={20} color={Colors.text.tertiary} />

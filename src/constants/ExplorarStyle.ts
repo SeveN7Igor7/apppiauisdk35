@@ -10,27 +10,41 @@ export const explorarStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.neutral.white,
-    paddingTop: Platform.OS === 'android' ? 25 : 0,
   },
   
   // Header Styles
+  // Novo header
+  headerTopSafe: {
+    backgroundColor: Colors.neutral.black,
+  },
   header: {
-  backgroundColor: Colors.neutral.black,
-  paddingTop: Spacing.lg, // menor espaço em cima
-  paddingBottom: Spacing.md, // menor espaço embaixo
-  paddingHorizontal: Spacing.container.horizontal,
-  elevation: Spacing.elevation.high,
-  shadowColor: Colors.shadow.dark,
-  shadowOffset: Spacing.shadowOffset.medium,
-  shadowOpacity: 0.3,
-  shadowRadius: Spacing.shadowRadius.medium,
-},
+    backgroundColor: Colors.neutral.black,
+    paddingHorizontal: Spacing.container.horizontal,
+    elevation: Spacing.elevation.high,
+    shadowColor: Colors.shadow.dark,
+    shadowOffset: Spacing.shadowOffset.medium,
+    shadowOpacity: 0.3,
+    shadowRadius: Spacing.shadowRadius.medium,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 52,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+  },
 
   headerTitle: {
     ...Typography.styles.h2,
     color: Colors.text.onPrimary,
     textAlign: 'center',
-    marginHorizontal: Spacing.md,
+    flex: 1,
   },
 
   
@@ -177,7 +191,7 @@ export const explorarStyles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.xs,
     left: Spacing.xs,
-    backgroundColor: Colors.primary.orange,
+    backgroundColor: Colors.primary.magentaSecondary,
     borderRadius: 8,
     paddingHorizontal: Spacing.xs,
     paddingVertical: 2,
