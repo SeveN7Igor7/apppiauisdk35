@@ -24,7 +24,7 @@ import { databaseSocial } from '../services/firebaseappdb';
 import { AuthContext } from '../contexts/AuthContext';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-const LogoImage = require('../../assets/logo.png');
+const LogoImage = require('../../assets/logosemfundo.png');
 
 const { width } = Dimensions.get('window');
 
@@ -1192,7 +1192,6 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     height: Platform.OS === "ios" ? 90 : 70, // Altura fixa para o cabeçalho, ajustada para iOS
     // Atenção: não é possível usar `insets` dentro do StyleSheet (fora do componente)
-    // O paddingTop dinâmico já é aplicado no componente via style inline
     paddingTop: 0,
   },
   headerLogo: {

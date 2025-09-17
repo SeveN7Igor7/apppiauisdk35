@@ -17,7 +17,8 @@ import {
   Dimensions,
 } from "react-native"
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import * as FileSystem from 'expo-file-system'
+// CORREÇÃO: Importando da API legacy para evitar o erro de depreciação
+import * as FileSystem from 'expo-file-system/legacy'
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { ref, get } from "firebase/database"
@@ -102,7 +103,7 @@ export default function Ingressos() {
     }
   }, [userData])
 
-  // Função para verificar armazenamento disponível
+  // CORREÇÃO: Função para verificar armazenamento disponível usando a API legacy
   const checkAvailableStorage = async () => {
     try {
       const freeSpace = await FileSystem.getFreeDiskStorageAsync()
@@ -956,40 +957,40 @@ function EventSelectionModal({
           </View>
 
           <View style={ingressosStyles.modalContent}>
-            <Text style={ingressosStyles.modalSubtitle}>
-              Escolha quais eventos deseja baixar para uso offline:
+            <Text style={ingressosStyles.modalText}>
+              Selecione os eventos que deseja baixar para uso offline:
             </Text>
 
-            <ScrollView style={ingressosStyles.eventSelectionList}>
-              {eventos.map((evento) => (
+            <FlatList
+              data={eventos}
+              keyExtractor={(item) => item.eventid}
+              style={ingressosStyles.eventSelectionList}
+              renderItem={({ item }) => (
                 <TouchableOpacity
-                  key={evento.eventid}
                   style={[
                     ingressosStyles.eventSelectionItem,
-                    selectedEvents.includes(evento.eventid) && ingressosStyles.eventSelectionItemSelected
+                    selectedEvents.includes(item.eventid) && ingressosStyles.eventSelectionItemSelected
                   ]}
-                  onPress={() => onToggleEvent(evento.eventid)}
+                  onPress={() => onToggleEvent(item.eventid)}
                 >
-                  <View style={ingressosStyles.eventSelectionContent}>
-                    <View style={ingressosStyles.eventSelectionInfo}>
-                      <Text style={ingressosStyles.eventSelectionName}>{evento.nomeevento}</Text>
-                      <Text style={ingressosStyles.eventSelectionDetails}>
-                        {evento.quantidadeTotal} {evento.quantidadeTotal === 1 ? 'ingresso' : 'ingressos'}
-                        {evento.dataevento && ` • ${evento.dataevento}`}
-                      </Text>
-                    </View>
-                    <View style={[
-                      ingressosStyles.eventSelectionCheckbox,
-                      selectedEvents.includes(evento.eventid) && ingressosStyles.eventSelectionCheckboxSelected
-                    ]}>
-                      {selectedEvents.includes(evento.eventid) && (
-                        <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />
-                      )}
-                    </View>
+                  <View style={ingressosStyles.eventSelectionInfo}>
+                    <Text style={ingressosStyles.eventSelectionName}>{item.nomeevento}</Text>
+                    <Text style={ingressosStyles.eventSelectionDetails}>
+                      {item.quantidadeTotal} {item.quantidadeTotal === 1 ? 'ingresso' : 'ingressos'}
+                      {item.dataevento && ` • ${item.dataevento}`}
+                    </Text>
+                  </View>
+                  <View style={[
+                    ingressosStyles.eventSelectionCheckbox,
+                    selectedEvents.includes(item.eventid) && ingressosStyles.eventSelectionCheckboxSelected
+                  ]}>
+                    {selectedEvents.includes(item.eventid) && (
+                      <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />
+                    )}
                   </View>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              )}
+            />
           </View>
 
           <View style={ingressosStyles.modalActions}>
