@@ -163,6 +163,12 @@ export default function Ingressos() {
     setDownloadProgress(0)
 
     try {
+      // Garantir que o usuário esteja definido
+      if (!user || !user.cpf) {
+        Alert.alert('Atenção', 'Você precisa estar logado para realizar o download offline.');
+        setIsDownloading(false)
+        return
+      }
       const offlineTickets = []
       let totalTickets = 0
 
@@ -345,12 +351,12 @@ export default function Ingressos() {
   if (!user?.cpf || !userData) {
     return (
       <View style={ingressosStyles.safeContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         
         <Header
           title="Meus Ingressos"
           onBackPress={() => navigation.goBack()}
-          showBackButton={true}
+          showBackButton={false}
           isMainTitle={true}
           insets={insets}
         />
@@ -375,12 +381,12 @@ export default function Ingressos() {
   if (loading) {
     return (
       <View style={ingressosStyles.safeContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         
         <Header
           title="Meus Ingressos"
           onBackPress={() => navigation.goBack()}
-          showBackButton={true}
+          showBackButton={false}
           isMainTitle={true}
           insets={insets}
         />
@@ -400,7 +406,7 @@ export default function Ingressos() {
 
   return (
     <View style={ingressosStyles.safeContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       
       <Header
         title={getHeaderTitle()}
@@ -482,11 +488,8 @@ function Header({
   insets: any
 }) {
   // CORREÇÃO: Calcular o padding top correto para Android e iOS
-  const headerPaddingTop = Platform.OS === 'android' 
-    ? insets.top + 16  // Para Android, usar insets.top + padding normal
-    : 16;              // Para iOS, SafeAreaView já cuida da área segura
-  
-  const headerPaddingBottom = 16;
+  const headerPaddingTop = insets.top + (Platform.OS === 'android' ? 8 : 0);
+  const headerPaddingBottom = 12;
 
   return (
     <View style={[

@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   Platform,
   Animated,
@@ -18,6 +17,7 @@ import {
   FlatList,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ref, get } from 'firebase/database';
 import { database } from '../services/firebase'; // Importação corrigida do database
 import { databaseSocial } from '../services/firebaseappdb';
@@ -536,7 +536,7 @@ export default function Perfil({ navigation }: { navigation: any }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView style={styles.centered} edges={["left","right"]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Carregando...</Text>
@@ -546,15 +546,17 @@ export default function Perfil({ navigation }: { navigation: any }) {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      {/* Novo Cabeçalho */}
-      <View style={[styles.customHeader, { paddingTop: insets.top + (Platform.OS === "android" ? 10 : 0) }]}>
-        <Image source={LogoImage} style={styles.headerLogo} resizeMode="contain" />
+    <SafeAreaView style={styles.safeArea} edges={["left","right"]}>
+      <StatusBar barStyle={'light-content'} translucent backgroundColor="transparent" />
+      {/* Cabeçalho com ícone de perfil centralizado e sem ação */}
+      <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'android' ? 8 : 0), justifyContent: 'center' }]}> 
+        <View>
+          <MaterialCommunityIcons name="account-circle" size={32} color="#fff" />
+        </View>
       </View>
 
       <ScrollView 
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={[styles.scrollContainer, { paddingBottom: insets.bottom + 16 }]}
         showsVerticalScrollIndicator={false}
       >
         {user ? (
@@ -753,8 +755,8 @@ const styles = StyleSheet.create({
     borderColor: "#374151",
   },
   logoImage: {
-    width: 120,
-    height: 60,
+    width: 150,
+    height: 90,
   },
   authTitle: {
     fontSize: 28,
@@ -1183,20 +1185,38 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "SF Pro Text" : "Roboto",
   },
-  // Novo estilo para o cabeçalho personalizado
-  customHeader: {
-    backgroundColor: "#000000",
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
+  // Cabeçalho igual ao Home
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    paddingHorizontal: 16,
     paddingBottom: 10,
-    height: Platform.OS === "ios" ? 90 : 70, // Altura fixa para o cabeçalho, ajustada para iOS
-    // Atenção: não é possível usar `insets` dentro do StyleSheet (fora do componente)
-    paddingTop: 0,
+    width: '100%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
   },
   headerLogo: {
-    width: 90, 
-    height: 90, 
+    width: 120,
+    height: 60,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerButton: {
+    marginLeft: 16,
+    padding: 6,
   },
   // Estilos para a seção "Em Breve"
   emBreveContainer: {

@@ -30,8 +30,8 @@ const Colors = {
   border: '#E0E0E0',
 };
 
-export default function EditarPerfil({ navigation }) {
-  const { user, updateUser } = useContext(AuthContext);
+export default function EditarPerfil({ navigation }: { navigation: any }) {
+  const { user } = useContext(AuthContext);
   const insets = useSafeAreaInsets();
 
   const [fullname, setFullname] = useState(user?.fullname || '');
@@ -40,12 +40,8 @@ export default function EditarPerfil({ navigation }) {
   const [datanascimento, setDatanascimento] = useState(user?.datanascimento || '');
 
   const handleSaveChanges = () => {
-    // Aqui você implementaria a lógica para salvar as alterações no backend
-    // Por enquanto, apenas um alerta de sucesso
     Alert.alert('Sucesso', 'Informações atualizadas com sucesso!');
-    // Exemplo de como você poderia atualizar o contexto (se a API retornar sucesso)
-    // updateUser({ ...user, fullname, email, telefone, datanascimento });
-    navigation.goBack(); // Volta para a tela anterior (Perfil)
+    navigation.goBack(); 
   };
 
   return (

@@ -67,7 +67,7 @@ export default function Explorar() {
   const [chatActivities, setChatActivities] = useState<Record<string, ChatActivity>>({});
   
   const { user } = useContext(AuthContext);
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets(); // Inicializar useSafeAreaInsets
 
   const categorias = [
@@ -360,16 +360,16 @@ export default function Explorar() {
         'Você precisa estar logado para avaliar a vibe do evento.',
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Login', onPress: () => navigation.navigate('Perfil' as never) },
+          { text: 'Login', onPress: () => (navigation as any).navigate('Perfil') },
         ]
       );
       return;
     }
-    navigation.navigate("VibeScreen" as never, {
+    (navigation as any).navigate('VibeScreen', {
       eventId: evento.id,
       nomeEvento: evento.nomeevento,
       cpf: user.cpf,
-    } as never);
+    });
   }
 
   const handleOpenSalesPage = (evento: Evento) => {
@@ -385,9 +385,9 @@ export default function Explorar() {
     // Adicionando log para verificar o tipo de evento.id antes de navegar
     console.log('[Explorar] Tipo de evento.id antes da navegação:', typeof evento.id);
 
-    navigation.navigate("EventDetails" as never, {
+    (navigation as any).navigate('EventDetails', {
       eventId: evento.id,
-    } as never);
+    });
   };
 
   const renderCategoriaButton = (categoria: any) => (
@@ -449,7 +449,7 @@ export default function Explorar() {
 
           {/* Badge de atividade do chat */}
           {temAtividadeChat && (
-            <View style={[explorarStyles.eventoUrgencyBadge, { backgroundColor: Colors.primary.green }]}>
+            <View style={[explorarStyles.eventoUrgencyBadge, { backgroundColor: Colors.feedback.success }]}>
               <MaterialCommunityIcons name="chat" size={12} color={Colors.text.onPrimary} />
               <Text style={explorarStyles.eventoUrgencyText}>Chat Ativo</Text>
             </View>
@@ -493,9 +493,9 @@ export default function Explorar() {
               {[1, 2, 3, 4, 5].map((star) => (
                 <MaterialCommunityIcons
                   key={star}
-                  name={star <= getVibeStars(evento.id) ? "star" : "star-outline"}
+                  name={star <= getVibeStars(evento.id) ? 'star' : 'star-outline'}
                   size={14}
-                  color={star <= getVibeStars(evento.id) ? Colors.primary.orange : Colors.text.tertiary}
+                  color={star <= getVibeStars(evento.id) ? Colors.primary.magenta : Colors.text.tertiary}
                 />
               ))}
             </View>
@@ -507,16 +507,16 @@ export default function Explorar() {
   };
 
   return (
-    <SafeAreaView style={explorarStyles.container} edges={['left','right','bottom']}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      {/* Cabeçalho com SafeArea topo separado */}
-      <SafeAreaView style={explorarStyles.headerTopSafe} edges={['top']}>
-        <View style={explorarStyles.header}>
+    <SafeAreaView style={explorarStyles.container} edges={['left','right']}>
+      <StatusBar barStyle={'light-content'} translucent backgroundColor="transparent" />
+      {/* Cabeçalho com SafeArea topo */}
+      <View style={explorarStyles.headerTopSafe}>
+        <View style={[explorarStyles.header, { paddingTop: insets.top + (Platform.OS === 'android' ? 8 : 0) }]}> 
           <View style={explorarStyles.headerContent}>
             <Text style={explorarStyles.headerTitle}>Explorar Eventos</Text>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
       <View style={explorarStyles.searchContainer}>
         <View style={explorarStyles.searchInputContainer}>
           <MaterialCommunityIcons name="magnify" size={20} color={Colors.text.tertiary} />
@@ -546,7 +546,7 @@ export default function Explorar() {
           keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={explorarStyles.eventoRow}
-          contentContainerStyle={explorarStyles.eventosListContent}
+          contentContainerStyle={[explorarStyles.eventosListContent, { paddingBottom: Spacing.lg + insets.bottom + 16 }]}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={explorarStyles.emptyContainer}>

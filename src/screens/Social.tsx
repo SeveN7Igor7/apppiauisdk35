@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  SafeAreaView,
   FlatList,
   Image,
   Alert,
@@ -14,6 +13,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ref, get, query, orderByChild, equalTo, set, update } from 'firebase/database';
 import { database } from '../services/firebase';
 import { databaseSocial } from '../services/firebaseappdb';
@@ -769,7 +769,7 @@ export default function Social() {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["top","left","right","bottom"]}>
         <View style={styles.loginRequired}>
           <MaterialCommunityIcons 
             name="account-alert" 
@@ -785,7 +785,7 @@ export default function Social() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} edges={["top","left","right","bottom"]}> 
       <Animated.View
         style={[
           styles.animatedContentContainer,

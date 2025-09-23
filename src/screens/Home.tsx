@@ -2,7 +2,6 @@ import React, { useEffect, useState, useContext, useRef, useCallback } from 'rea
 import {
   View,
   Text,
-  SafeAreaView,
   Platform,
   Image,
   TouchableOpacity,
@@ -14,7 +13,9 @@ import {
   StatusBar,
   StyleSheet,
   FlatList,
+  ImageStyle,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ref, onValue, get } from 'firebase/database';
 import { database } from '../services/firebase';
 import { databaseSocial } from '../services/firebaseappdb';
@@ -52,7 +53,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [vibes, setVibes] = useState<Record<string, VibeData>>({});
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>('todos'); // Estado para filtro de categoria
-  const [headerHeight, setHeaderHeight] = useState(0); // Novo estado para a altura do cabeçalho
+  // Removido estado de altura do cabeçalho não utilizado
   
   // Estados para o WebView
   const [webViewVisible, setWebViewVisible] = useState(false);
@@ -74,12 +75,12 @@ export default function Home() {
 
   // Função para navegar para a tela de Ingressos
   const handleNavigateToIngressos = () => {
-    navigation.navigate('Ingressos' as never);
+    (navigation as any).navigate('Ingressos');
   };
 
   // Função para navegar para a tela de Perfil
   const handleNavigateToPerfil = () => {
-    navigation.navigate('Perfil' as never);
+    (navigation as any).navigate('Perfil');
   };
 
   // Função para abrir o WebView com detalhes do evento
@@ -269,11 +270,11 @@ export default function Home() {
       );
       return;
     }
-    navigation.navigate("VibeScreen" as never, {
+    (navigation as any).navigate('VibeScreen', {
       eventId: evento.id,
       nomeEvento: evento.nomeevento,
       cpf: user.cpf,
-    } as never);
+    });
   }
 
   const getMensagemVibe = (eventoId: string): string => {
@@ -344,7 +345,7 @@ export default function Home() {
             {evento.nomeevento}
           </Text>
           <View style={styles.vibeContainer}>
-            <MaterialCommunityIcons name="star" size={16} color={Colors.accent} />
+            <MaterialCommunityIcons name="star" size={16} color={Colors.primary.magenta} />
             <Text style={styles.vibeText}>{getMensagemVibe(evento.id)}</Text>
           </View>
           <TouchableOpacity
@@ -359,11 +360,14 @@ export default function Home() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+  <SafeAreaView style={styles.container} edges={["left","right"]}>
+      <StatusBar barStyle={'light-content'} translucent backgroundColor={'transparent'} />
 
-      {/* Cabeçalho */} 
-      <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === "android" ? 10 : 0) }]}>
+      {/* Cabeçalho */}
+      <View style={[
+        styles.header,
+        { paddingTop: insets.top + (Platform.OS === 'android' ? 8 : 0) }
+      ]}> 
         <Image source={require('../images/logo.png')} style={styles.headerLogo} resizeMode="contain" />
         <View style={styles.headerIcons}>
           <TouchableOpacity onPress={handleNavigateToIngressos} style={styles.headerButton}>
@@ -394,7 +398,7 @@ export default function Home() {
               <MaterialCommunityIcons
                 name={cat.icone as any}
                 size={20}
-                color={categoriaFiltro === cat.id ? Colors.primary : Colors.text.secondary}
+                color={categoriaFiltro === cat.id ? Colors.primary.purple : Colors.text.secondary}
               />
               <Text
                 style={[
@@ -411,7 +415,7 @@ export default function Home() {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={Colors.primary.purple} />
           <Text style={styles.loadingText}>Carregando eventos...</Text>
         </View>
       ) : (
@@ -419,7 +423,10 @@ export default function Home() {
           data={eventosParaLista}
           renderItem={({ item }) => renderEventCard(item)}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.eventListContainer}
+          contentContainerStyle={[
+            styles.eventListContainer,
+            { paddingBottom: Spacing.lg + insets.bottom + 16 }
+          ]}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={(
             <View style={styles.emptyStateContainer}>
@@ -447,7 +454,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.neutral.white,
   },
   header: {
     flexDirection: 'row',
@@ -472,7 +479,7 @@ const styles = StyleSheet.create({
   headerLogo: {
     width: 70,
     height: 40,
-  },
+  } as ImageStyle,
   headerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -482,7 +489,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   categoryContainer: {
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.neutral.white,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.neutral.lightGray,
@@ -502,8 +509,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.neutral.white,
   },
   categoryButtonActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.neutral.lightGray,
+    borderColor: Colors.primary.purple,
   },
   categoryButtonText: {
     marginLeft: Spacing.xs,
@@ -512,13 +519,13 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
   },
   categoryButtonTextActive: {
-    color: Colors.primary,
+    color: Colors.primary.purple,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.neutral.white,
   },
   loadingText: {
     marginTop: Spacing.md,
@@ -531,7 +538,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   eventCard: {
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: Colors.neutral.white,
     borderRadius: 16,
     marginBottom: Spacing.lg,
     overflow: 'hidden',
@@ -577,7 +584,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.sm,
     left: Spacing.sm,
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.primary.magenta,
     borderRadius: 15,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
@@ -594,7 +601,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: Spacing.sm,
     right: Spacing.sm,
-    backgroundColor: Colors.error,
+    backgroundColor: Colors.feedback.error,
     borderRadius: 8,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
@@ -663,14 +670,14 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     paddingHorizontal: Spacing.xl,
   },
-
+  // Alternativos (não utilizados atualmente, renomeados para evitar duplicação)
   cardButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: Spacing.sm,
   },
-  detailsButton: {
-    backgroundColor: Colors.primary,
+  detailsButtonAlt: {
+    backgroundColor: Colors.primary.purple,
     borderRadius: 8,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -678,7 +685,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: Spacing.sm,
   },
-  detailsButtonText: {
+  detailsButtonAltText: {
     color: Colors.neutral.white,
     fontSize: Typography.fontSize.md,
     fontWeight: Typography.fontWeight.bold,
