@@ -226,7 +226,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ eventId }) => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? (insets?.bottom || 0) + 5 : 0}
-        style={styles.inputContainer}
+        style={[
+          styles.inputContainer,
+          {
+            paddingBottom: Platform.OS === 'ios' ? Math.max((insets?.bottom || 0), 20) : 8,
+          }
+        ]}
       >
         <TextInput
           style={styles.textInput}
@@ -247,13 +252,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ eventId }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.dark,
+    backgroundColor: Colors.neutral.darkGray,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background.dark,
+    backgroundColor: Colors.neutral.darkGray,
   },
   loadingText: {
     color: Colors.text.primary,
@@ -265,9 +270,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center', // Centralize o título
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: Colors.background.medium,
+    backgroundColor: Colors.neutral.mediumGray,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.dark,
+    borderBottomColor: Colors.neutral.mediumGray,
   },
   headerTitle: {
     color: Colors.text.onPrimary,
@@ -294,7 +299,7 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     marginHorizontal: 5,
-    backgroundColor: Colors.neutral.gray,
+    backgroundColor: Colors.neutral.mediumGray,
   },
   messageBubble: {
     maxWidth: '75%',
@@ -311,7 +316,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 2,
   },
   otherMessageBubble: {
-    backgroundColor: Colors.background.light,
+    backgroundColor: Colors.neutral.lightGray,
     borderBottomLeftRadius: 2,
   },
   userName: {
@@ -346,13 +351,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.dark,
-    backgroundColor: Colors.background.medium,
-    paddingBottom: Platform.OS === 'ios' ? (insets?.bottom || 0) : 8,
+    borderTopColor: Colors.neutral.mediumGray,
+    backgroundColor: Colors.neutral.mediumGray,
   },
   textInput: {
     flex: 1,
-    backgroundColor: Colors.background.light,
+    backgroundColor: Colors.neutral.white,
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 10,
