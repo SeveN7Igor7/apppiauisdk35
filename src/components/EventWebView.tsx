@@ -7,13 +7,14 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
-  SafeAreaView,
   Dimensions,
   Modal,
+  Platform,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing } from '../constants/Spacing';
@@ -49,6 +50,7 @@ const EventWebView: React.FC<EventWebViewProps> = ({
   const [currentUrl, setCurrentUrl] = useState('');
   const [error, setError] = useState(false);
   const webViewRef = useRef<WebView>(null);
+  const insets = useSafeAreaInsets();
 
   const baseUrl = `https://piauitickets.com/comprar/${eventId}/${nomeUrl || ''}`;
   
@@ -96,98 +98,99 @@ const EventWebView: React.FC<EventWebViewProps> = ({
 
   const renderHeader = () => (
     <LinearGradient
-      colors={Colors.gradients.primaryPurple}
-      style={styles.header}
+      colors={[Colors.primary.purple, Colors.primary.purpleSecondary]}
+      style={[
+        styles.header,
+        { paddingTop: insets.top + (Platform.OS === 'android' ? 8 : 0) }
+      ]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 0 }}
     >
-      <SafeAreaView style={styles.headerSafeArea}>
-        <View style={styles.headerContent}>
-          {/* Botão Fechar */}
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={onClose}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons 
-              name="close" 
-              size={24} 
-              color={Colors.text.onPrimary} 
-            />
-          </TouchableOpacity>
+      <View style={styles.headerContent}>
+        {/* Botão Fechar */}
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={onClose}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons 
+            name="close" 
+            size={24} 
+            color={Colors.text.onPrimary} 
+          />
+        </TouchableOpacity>
 
-          {/* Título do Evento */}
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {eventName}
-            </Text>
-            <Text style={styles.headerSubtitle} numberOfLines={1}>
-              Piauí Tickets
-            </Text>
-          </View>
-
-          {/* Botão Refresh */}
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleRefresh}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons 
-              name="refresh" 
-              size={24} 
-              color={Colors.text.onPrimary} 
-            />
-          </TouchableOpacity>
+        {/* Título do Evento */}
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {eventName}
+          </Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
+            Piauí Tickets
+          </Text>
         </View>
 
-        {/* Barra de Navegação */}
-        <View style={styles.navigationBar}>
-          <TouchableOpacity
-            style={[styles.navButton, !canGoBack && styles.navButtonDisabled]}
-            onPress={handleGoBack}
-            disabled={!canGoBack}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons 
-              name="arrow-left" 
-              size={20} 
-              color={canGoBack ? Colors.text.onPrimary : Colors.text.disabled} 
-            />
-          </TouchableOpacity>
+        {/* Botão Refresh */}
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={handleRefresh}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons 
+            name="refresh" 
+            size={24} 
+            color={Colors.text.onPrimary} 
+          />
+        </TouchableOpacity>
+      </View>
 
-          <TouchableOpacity
-            style={[styles.navButton, !canGoForward && styles.navButtonDisabled]}
-            onPress={handleGoForward}
-            disabled={!canGoForward}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons 
-              name="arrow-right" 
-              size={20} 
-              color={canGoForward ? Colors.text.onPrimary : Colors.text.disabled} 
-            />
-          </TouchableOpacity>
+      {/* Barra de Navegação */}
+      <View style={styles.navigationBar}>
+        <TouchableOpacity
+          style={[styles.navButton, !canGoBack && styles.navButtonDisabled]}
+          onPress={handleGoBack}
+          disabled={!canGoBack}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons 
+            name="arrow-left" 
+            size={20} 
+            color={canGoBack ? Colors.text.onPrimary : Colors.text.disabled} 
+          />
+        </TouchableOpacity>
 
-          <View style={styles.urlContainer}>
-            <MaterialCommunityIcons 
-              name="lock" 
-              size={14} 
-              color={Colors.text.onPrimary} 
-            />
-            <Text style={styles.urlText} numberOfLines={1}>
-              {currentUrl || baseUrl}
-            </Text>
-          </View>
+        <TouchableOpacity
+          style={[styles.navButton, !canGoForward && styles.navButtonDisabled]}
+          onPress={handleGoForward}
+          disabled={!canGoForward}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons 
+            name="arrow-right" 
+            size={20} 
+            color={canGoForward ? Colors.text.onPrimary : Colors.text.disabled} 
+          />
+        </TouchableOpacity>
 
-          {loading && (
-            <ActivityIndicator 
-              size="small" 
-              color={Colors.text.onPrimary} 
-              style={styles.loadingIndicator}
-            />
-          )}
+        <View style={styles.urlContainer}>
+          <MaterialCommunityIcons 
+            name="lock" 
+            size={14} 
+            color={Colors.text.onPrimary} 
+          />
+          <Text style={styles.urlText} numberOfLines={1}>
+            {currentUrl || baseUrl}
+          </Text>
         </View>
-      </SafeAreaView>
+
+        {loading && (
+          <ActivityIndicator 
+            size="small" 
+            color={Colors.text.onPrimary} 
+            style={styles.loadingIndicator}
+          />
+        )}
+      </View>
     </LinearGradient>
   );
 
@@ -208,7 +211,7 @@ const EventWebView: React.FC<EventWebViewProps> = ({
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={Colors.gradients.primaryPurple}
+          colors={[Colors.primary.purple, Colors.primary.purpleSecondary]}
           style={styles.retryButtonGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
@@ -231,8 +234,7 @@ const EventWebView: React.FC<EventWebViewProps> = ({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      {console.log('[EventWebView] Modal sendo renderizado com visible:', visible)}
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary.purple} />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <View style={styles.container}>
         {renderHeader()}
         
@@ -279,9 +281,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingBottom: Spacing.sm,
-  },
-  headerSafeArea: {
-    paddingTop: (StatusBar.currentHeight || 0) / 2,
   },
   headerContent: {
     flexDirection: 'row',

@@ -20,7 +20,8 @@ import { AuthContext } from '../contexts/AuthContext';
 import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing } from '../constants/Spacing';
-import { LinearGradient } from 'expo-linear-gradient'; // Importa o LinearGradient
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Message {
   id: string;
@@ -42,6 +43,7 @@ const participantCache = new Map<string, boolean>();
 
 const ChatComponent: React.FC<ChatComponentProps> = ({ eventId, isInsideModal }) => {
   const { user } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -189,7 +191,12 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ eventId, isInsideModal })
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={isInsideModal ? 90 : 0}>
       <FlatList ref={flatListRef} data={messages} keyExtractor={(item) => item.id} renderItem={renderMessage} contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false} />
-      <View style={styles.inputContainer}>
+      <View style={[
+        styles.inputContainer,
+        {
+          paddingBottom: Platform.OS === 'ios' && isInsideModal ? Math.max(insets.bottom, 20) : Spacing.sm
+        }
+      ]}>
         <TextInput style={styles.textInput} value={newMessage} onChangeText={setNewMessage} placeholder="Digite sua mensagem..." placeholderTextColor={Colors.text.tertiary} multiline />
         <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage} disabled={sending || newMessage.trim() === ''}>
           {sending ? <ActivityIndicator size="small" color={Colors.text.onPrimary} /> : <MaterialCommunityIcons name="send" size={24} color={Colors.text.onPrimary} />}
@@ -254,7 +261,7 @@ const styles = StyleSheet.create({
   otherMessageText: { ...Typography.styles.bodyMedium, color: Colors.text.primary },
   myMessageTime: { ...Typography.styles.caption, color: Colors.text.onPrimary, alignSelf: 'flex-end', marginTop: Spacing.xs, opacity: 0.8 },
   otherMessageTime: { ...Typography.styles.caption, color: Colors.text.secondary, alignSelf: 'flex-end', marginTop: Spacing.xs },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.neutral.gray, backgroundColor: Colors.neutral.white },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.neutral.mediumGray, backgroundColor: Colors.neutral.white },
   textInput: { flex: 1, backgroundColor: Colors.neutral.lightGray, borderRadius: Spacing.button.borderRadius, paddingHorizontal: Spacing.md, paddingVertical: Platform.OS === 'ios' ? Spacing.sm : Spacing.xs, ...Typography.styles.bodyMedium, color: Colors.text.primary, marginRight: Spacing.sm, maxHeight: 120 },
   sendButton: { backgroundColor: Colors.primary.purple, borderRadius: 22, width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
 });

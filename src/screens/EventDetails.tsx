@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useContext, useRef } from "react"
-import { Modal, Animated, Dimensions, StyleSheet } from "react-native"
+import { Modal, Animated, Dimensions, StyleSheet, Platform } from "react-native"
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Linking,
-  SafeAreaView, // Usado para a tela principal
   StatusBar,
   Alert,
 } from "react-native"
@@ -21,7 +20,9 @@ import { databaseSocial } from "../services/firebaseappdb"
 import { AuthContext } from "../contexts/AuthContext"
 import { LinearGradient } from "expo-linear-gradient"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from "../constants/Colors"
+import { Spacing } from "../constants/Spacing"
 
 import ChatComponent from "../components/ChatComponent"
 import { eventDetailsStyles } from "../constants/EventDetailsStyle"
@@ -54,6 +55,7 @@ export default function EventDetails() {
   const navigation = useNavigation()
   const { eventId } = route.params as EventDetailsRouteParams
   const { user } = useContext(AuthContext)
+  const insets = useSafeAreaInsets()
 
   const [evento, setEvento] = useState<Evento | null>(null)
   const [loading, setLoading] = useState(true)
@@ -297,25 +299,31 @@ export default function EventDetails() {
   const urgencia = getUrgenciaMensagem()
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.neutral.black }}>
-      <SafeAreaView style={eventDetailsStyles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.neutral.black} />
-        <View style={eventDetailsStyles.header}>
+    <SafeAreaView style={eventDetailsStyles.container} edges={['left','right']}>
+      <StatusBar barStyle={'light-content'} translucent backgroundColor="transparent" />
+      {/* Cabeçalho com SafeArea topo */}
+      <View style={eventDetailsStyles.headerTopSafe}>
+        <View style={[eventDetailsStyles.header, { paddingTop: insets.top + (Platform.OS === 'android' ? 8 : 0) }]}> 
           <View style={eventDetailsStyles.headerContent}>
-            <TouchableOpacity style={eventDetailsStyles.backButton} onPress={handleGoBack}><MaterialCommunityIcons name="arrow-left" size={24} color={Colors.text.onPrimary} /></TouchableOpacity>
+            <TouchableOpacity style={eventDetailsStyles.backButton} onPress={handleGoBack}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.text.onPrimary} />
+            </TouchableOpacity>
             <Text style={eventDetailsStyles.headerTitle}>Detalhes do Evento</Text>
-            <TouchableOpacity style={eventDetailsStyles.shareButton} onPress={handleShare}><MaterialCommunityIcons name="share-variant" size={24} color={Colors.text.onPrimary} /></TouchableOpacity>
+            <TouchableOpacity style={eventDetailsStyles.shareButton} onPress={handleShare}>
+              <MaterialCommunityIcons name="share-variant" size={24} color={Colors.text.onPrimary} />
+            </TouchableOpacity>
           </View>
         </View>
+      </View>
 
-        <ScrollView style={eventDetailsStyles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={eventDetailsStyles.eventImageContainer}>
-            <Image source={{ uri: evento.imageurl }} style={[eventDetailsStyles.eventImage, encerrado && eventDetailsStyles.eventImageDisabled]} />
-            {encerrado && <View style={eventDetailsStyles.eventDisabledOverlay}><MaterialCommunityIcons name="close-circle" size={32} color={Colors.text.onPrimary} /><Text style={eventDetailsStyles.eventDisabledText}>Vendas Encerradas</Text></View>}
-            {mostraSeloAltaVibe() && !encerrado && <View style={eventDetailsStyles.eventHighVibeBadge}><MaterialCommunityIcons name="fire" size={18} color={Colors.text.onPrimary} /><Text style={eventDetailsStyles.eventHighVibeBadgeText}>Alta Vibe</Text></View>}
-            {/* Botão do chat na imagem do evento, aparece apenas se o evento já começou */}
-            {urgencia && <View style={eventDetailsStyles.eventUrgencyBadge}><MaterialCommunityIcons name="clock-fast" size={16} color={Colors.text.onPrimary} /><Text style={eventDetailsStyles.eventUrgencyText}>{urgencia}</Text></View>}
-          </View>
+      <ScrollView style={eventDetailsStyles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={eventDetailsStyles.eventImageContainer}>
+          <Image source={{ uri: evento.imageurl }} style={[eventDetailsStyles.eventImage, encerrado && eventDetailsStyles.eventImageDisabled]} />
+          {encerrado && <View style={eventDetailsStyles.eventDisabledOverlay}><MaterialCommunityIcons name="close-circle" size={32} color={Colors.text.onPrimary} /><Text style={eventDetailsStyles.eventDisabledText}>Vendas Encerradas</Text></View>}
+          {mostraSeloAltaVibe() && !encerrado && <View style={eventDetailsStyles.eventHighVibeBadge}><MaterialCommunityIcons name="fire" size={18} color={Colors.text.onPrimary} /><Text style={eventDetailsStyles.eventHighVibeBadgeText}>Alta Vibe</Text></View>}
+          {/* Botão do chat na imagem do evento, aparece apenas se o evento já começou */}
+          {urgencia && <View style={eventDetailsStyles.eventUrgencyBadge}><MaterialCommunityIcons name="clock-fast" size={16} color={Colors.text.onPrimary} /><Text style={eventDetailsStyles.eventUrgencyText}>{urgencia}</Text></View>}
+        </View>
 
           <View style={eventDetailsStyles.eventContent}>
             <View style={eventDetailsStyles.eventTitleSection}><Text style={eventDetailsStyles.eventCategory}>{formatarCategoria(evento.categoria)}</Text><Text style={eventDetailsStyles.eventName}>{evento.nomeevento}</Text></View>
@@ -327,7 +335,7 @@ export default function EventDetails() {
             </View>
             {evento.preco && <View style={eventDetailsStyles.priceSection}><Text style={eventDetailsStyles.priceLabel}>Preço dos ingressos</Text><Text style={eventDetailsStyles.priceValue}>{evento.preco}</Text></View>}
             <View style={eventDetailsStyles.vibeSection}>
-              <Text style={eventDetailsStyles.vibeSectionTitle}>Vibe do Evento</Text>
+              <Text style={eventDetailsStyles.vibeSectionTitle}>Classificação do Evento</Text>
               <View style={eventDetailsStyles.vibeContainer}>
                 <View style={eventDetailsStyles.vibeStars}>{[1, 2, 3, 4, 5].map(star => <MaterialCommunityIcons key={star} name={star <= getVibeStars() ? "star" : "star-outline"} size={28} color={star <= getVibeStars() ? Colors.primary.orange : Colors.text.tertiary} />)}</View>
                 <Text style={eventDetailsStyles.vibeMessage}>{getMensagemVibe()}</Text>
@@ -360,37 +368,36 @@ export default function EventDetails() {
                 <>
                   <TouchableOpacity style={eventDetailsStyles.primaryActionButton} onPress={handleOpenSalesPage}><LinearGradient colors={[Colors.primary.purple, Colors.primary.magenta]} style={eventDetailsStyles.primaryActionButtonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}><MaterialCommunityIcons name="ticket" size={20} color={Colors.text.onPrimary} /><Text style={eventDetailsStyles.primaryActionButtonText}>Comprar Ingresso</Text></LinearGradient></TouchableOpacity>
                   {/* Chamada corrigida: eventoJaComecou() é uma função, não uma propriedade de evento */}
-                  {eventoJaComecou() ? <TouchableOpacity style={eventDetailsStyles.secondaryActionButton} onPress={handleAvaliarVibe}><MaterialCommunityIcons name="heart" size={20} color={Colors.primary.purple} /><Text style={eventDetailsStyles.secondaryActionButtonText}>Avaliar Vibe</Text></TouchableOpacity> : <View style={eventDetailsStyles.disabledButton}><MaterialCommunityIcons name="clock-outline" size={20} color={Colors.text.tertiary} /><Text style={eventDetailsStyles.disabledButtonText}>Avaliação em Breve</Text></View>}
+                  {eventoJaComecou() ? <TouchableOpacity style={eventDetailsStyles.secondaryActionButton} onPress={handleAvaliarVibe}><MaterialCommunityIcons name="heart" size={20} color={Colors.primary.purple} /><Text style={eventDetailsStyles.secondaryActionButtonText}>Avaliar Evento</Text></TouchableOpacity> : <View style={eventDetailsStyles.disabledButton}><MaterialCommunityIcons name="clock-outline" size={20} color={Colors.text.tertiary} /><Text style={eventDetailsStyles.disabledButtonText}>Avaliação em Breve</Text></View>}
                 </>
               ) : (
                 <>
                   <View style={eventDetailsStyles.statusMessage}><Text style={eventDetailsStyles.statusMessageText}>{evento.vendaaberta?.mensagem || "Vendas encerradas"}</Text></View>
                   <View style={eventDetailsStyles.disabledButton}><MaterialCommunityIcons name="ticket-outline" size={20} color={Colors.text.tertiary} /><Text style={eventDetailsStyles.disabledButtonText}>Vendas Encerradas</Text></View>
                   {/* Chamada corrigida: eventoJaComecou() é uma função, não uma propriedade de evento */}
-                  {eventoJaComecou() ? <TouchableOpacity style={eventDetailsStyles.secondaryActionButton} onPress={handleAvaliarVibe}><MaterialCommunityIcons name="heart" size={20} color={Colors.primary.purple} /><Text style={eventDetailsStyles.secondaryActionButtonText}>Avaliar Vibe</Text></TouchableOpacity> : <View style={eventDetailsStyles.disabledButton}><MaterialCommunityIcons name="clock-outline" size={20} color={Colors.text.tertiary} /><Text style={eventDetailsStyles.disabledButtonText}>Avaliação em Breve</Text></View>}
+                  {eventoJaComecou() ? <TouchableOpacity style={eventDetailsStyles.secondaryActionButton} onPress={handleAvaliarVibe}><MaterialCommunityIcons name="heart" size={20} color={Colors.primary.purple} /><Text style={eventDetailsStyles.secondaryActionButtonText}>Avaliar Evento</Text></TouchableOpacity> : <View style={eventDetailsStyles.disabledButton}><MaterialCommunityIcons name="clock-outline" size={20} color={Colors.text.tertiary} /><Text style={eventDetailsStyles.disabledButtonText}>Avaliação em Breve</Text></View>}
                 </>
               )}
             </View>
           </View>
         </ScrollView>
-      </SafeAreaView>
 
-      {/* Modal do Chat */}
-      <Modal visible={isChatVisible} transparent animationType="none" onRequestClose={handleCloseChat}>
-        <View style={localStyles.modalBackdrop}>
-          <Animated.View style={[localStyles.chatModalContainer, { transform: [{ translateY: slideAnim }] }]}>
-            <View style={localStyles.chatHeader}>
-              <Text style={localStyles.chatHeaderTitle}>Chat do Evento</Text>
-              <TouchableOpacity onPress={handleCloseChat} style={localStyles.chatCloseButton}>
-                <MaterialCommunityIcons name="close" size={24} color={Colors.text.onPrimary} />
-              </TouchableOpacity>
-            </View>
-            <ChatComponent eventId={eventId} isInsideModal={true} />
-          </Animated.View>
-        </View>
-      </Modal>
-    </View>
-  )
+        {/* Modal do Chat */}
+        <Modal visible={isChatVisible} transparent animationType="none" onRequestClose={handleCloseChat}>
+          <View style={localStyles.modalBackdrop}>
+            <Animated.View style={[localStyles.chatModalContainer, { transform: [{ translateY: slideAnim }] }]}>
+              <View style={localStyles.chatHeader}>
+                <Text style={localStyles.chatHeaderTitle}>Chat do Evento</Text>
+                <TouchableOpacity onPress={handleCloseChat} style={localStyles.chatCloseButton}>
+                  <MaterialCommunityIcons name="close" size={24} color={Colors.text.onPrimary} />
+                </TouchableOpacity>
+              </View>
+              <ChatComponent eventId={eventId} isInsideModal={true} />
+            </Animated.View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    )
 }
 
 // Estilos adicionais para o novo layout do chat

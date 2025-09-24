@@ -12,6 +12,8 @@ import {
   ScrollView,
   Animated,
   Easing,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ref, get, query, orderByChild, equalTo, set, update } from 'firebase/database';
@@ -404,9 +406,6 @@ export default function Social() {
         
         <View style={styles.userDetails}>
           <Text style={styles.userName}>{item.fullname}</Text>
-          <Text style={styles.userContact}>
-            {item.email || item.telefone}
-          </Text>
         </View>
       </View>
       
@@ -500,73 +499,90 @@ export default function Social() {
   // Removido: renderRequestsScreen
   const renderSearchScreen = () => (
     <View style={styles.container}>
-      {/* Banner de boas-vindas sem solicitações */}
-
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <MaterialCommunityIcons 
-            name="magnify" 
-            size={24} 
-            color={Colors.textSecondary} 
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar por email, telefone ou nome..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={Colors.textSecondary}
-          />
-          {loading && (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          )}
-        </View>
+      {/* Cabeçalho com botão de voltar - modelo Home.tsx */}
+      <View style={[
+        styles.header,
+        { paddingTop: insets.top + (Platform.OS === 'android' ? 8 : 0) }
+      ]}> 
+        <TouchableOpacity style={styles.headerBackButton} onPress={() => navigation.goBack()}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Descobrir Pessoas</Text>
+        <View style={styles.headerRightSpace} />
       </View>
 
-      {searchQuery.length > 0 && searchQuery.length < 3 && (
-        <View style={styles.hintContainer}>
-          <Text style={styles.hintText}>
-            Digite pelo menos 3 caracteres para buscar
-          </Text>
-        </View>
-      )}
-
-      {searchResults.length > 0 && (
-        <FlatList
-          data={searchResults}
-          keyExtractor={(item) => item.cpf}
-          renderItem={renderSearchResult}
-          style={styles.resultsList}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
-      {searchQuery.length >= 3 && searchResults.length === 0 && !loading && (
-        <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons 
-            name="account-search" 
-            size={64} 
-            color={Colors.textSecondary} 
-          />
-          <Text style={styles.emptyText}>Nenhum usuário encontrado</Text>
-          <Text style={styles.emptySubtext}>
-            Tente buscar por email, telefone ou nome
-          </Text>
-        </View>
-      )}
-
-      {searchQuery.length === 0 && (
-        <>
-          <View style={styles.welcomeContainer}>
+      {/* Conteúdo principal */}
+      <View style={[styles.mainContent, { paddingBottom: insets.bottom + 20 }]}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputContainer}>
             <MaterialCommunityIcons 
-              name="account-group" 
-              size={80} 
-              color={Colors.primary} 
+              name="magnify" 
+              size={24} 
+              color={Colors.textSecondary} 
             />
-            <Text style={styles.welcomeTitle}>Descubra Pessoas</Text>
-            <Text style={styles.welcomeText}>
-              Busque por usuários usando email, telefone ou nome para ver perfis e eventos participados
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por email, telefone ou nome..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor={Colors.textSecondary}
+            />
+            {loading && (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            )}
+          </View>
+        </View>
+
+        {/* Dicas de busca */}
+        {searchQuery.length > 0 && searchQuery.length < 3 && (
+          <View style={styles.hintContainer}>
+            <Text style={styles.hintText}>
+              Digite pelo menos 3 caracteres para buscar
             </Text>
           </View>
+        )}
+
+        {/* Resultados da busca */}
+        {searchResults.length > 0 && (
+          <View style={styles.resultsContainer}>
+            {searchResults.map((item) => (
+              <View key={item.cpf}>
+                {renderSearchResult({ item })}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Nenhum resultado encontrado */}
+        {searchQuery.length >= 3 && searchResults.length === 0 && !loading && (
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons 
+              name="account-search" 
+              size={64} 
+              color={Colors.textSecondary} 
+            />
+            <Text style={styles.emptyText}>Nenhum usuário encontrado</Text>
+            <Text style={styles.emptySubtext}>
+              Tente buscar por email, telefone ou nome
+            </Text>
+          </View>
+        )}
+
+        {/* Tela inicial - sem busca */}
+        {searchQuery.length === 0 && (
+          <>
+            <View style={styles.welcomeContainer}>
+              <MaterialCommunityIcons 
+                name="account-group" 
+                size={80} 
+                color={Colors.primary} 
+              />
+              <Text style={styles.welcomeTitle}>Descubra Pessoas</Text>
+              <Text style={styles.welcomeText}>
+                Busque por usuários usando email, telefone ou nome para conectar-se e ver perfis interessantes
+              </Text>
+            </View>
 
           {/* Seção de Seguindo */}
           {followingList.length > 0 && (
@@ -627,7 +643,9 @@ export default function Social() {
             </View>
           )}
         </>
-      )}
+        )}
+        </ScrollView>
+      </View>
     </View>
   );
 
@@ -636,22 +654,24 @@ export default function Social() {
     if (!selectedUser) return null;
 
     return (
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header do perfil */}
-        <View style={styles.profileHeader}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => setViewMode('search')}
-          >
-            <MaterialCommunityIcons 
-              name="arrow-left" 
-              size={24} 
-              color={Colors.textPrimary} 
-            />
+      <View style={styles.container}>
+        {/* Cabeçalho com botão de voltar - modelo Home.tsx */}
+        <View style={[
+          styles.header,
+          { paddingTop: insets.top + (Platform.OS === 'android' ? 8 : 0) }
+        ]}> 
+          <TouchableOpacity style={styles.headerBackButton} onPress={() => setViewMode('search')}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
           </TouchableOpacity>
-          
-          <Text style={styles.profileHeaderTitle}>Perfil do Usuário</Text>
+          <Text style={styles.headerTitle}>Perfil do Usuário</Text>
+          <View style={styles.headerRightSpace} />
         </View>
+
+        {/* Conteúdo principal */}
+        <ScrollView 
+          style={[styles.mainContent, { paddingBottom: insets.bottom + 20 }]} 
+          showsVerticalScrollIndicator={false}
+        >
 
         {/* Informações do usuário */}
 <View style={styles.profileCard}>
@@ -668,7 +688,7 @@ export default function Social() {
 
     <View style={styles.profileDetails}>
       <Text style={styles.profileName}>{selectedUser.fullname}</Text>
-      <Text style={styles.profileContact}>{selectedUser.email}</Text>
+       {/*<Text style={styles.profileContact}>{selectedUser.email}</Text>*/}
 
       {/* Comentado: Número de telefone */}
       {/*
@@ -763,14 +783,16 @@ export default function Social() {
             </View>
           )}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     );
   };
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container} edges={["top","left","right","bottom"]}>
-        <View style={styles.loginRequired}>
+      <SafeAreaView style={styles.container} edges={["left","right"]}>
+        <StatusBar barStyle={'light-content'} translucent backgroundColor={'transparent'} />
+        <View style={[styles.loginRequired, { paddingBottom: insets.bottom + 20 }]}>
           <MaterialCommunityIcons 
             name="account-alert" 
             size={64} 
@@ -785,7 +807,9 @@ export default function Social() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} edges={["top","left","right","bottom"]}> 
+    <SafeAreaView style={styles.container} edges={["left","right"]}>
+      <StatusBar barStyle={'light-content'} translucent backgroundColor={'transparent'} />
+      
       <Animated.View
         style={[
           styles.animatedContentContainer,
@@ -822,21 +846,75 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    width: '100%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerBackButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerRightSpace: {
+    width: 40,
+  },
+  mainContent: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  resultsContainer: {
+    paddingHorizontal: 16,
+  },
   animatedContentContainer: {
     flex: 1,
   },
   searchContainer: {
-    padding: 16,
+    padding: 20,
+    paddingBottom: 12,
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderWidth: 1,
     borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3.84,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
@@ -861,11 +939,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: Colors.cardBackground,
-    padding: 16,
-    marginBottom: 8,
-    borderRadius: 12,
+    padding: 18,
+    marginBottom: 10,
+    marginHorizontal: 4,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 2.22,
+    elevation: 3,
   },
   userInfo: {
     flexDirection: 'row',
@@ -923,37 +1010,27 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: 40,
+    marginTop: 20,
   },
   welcomeTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '700',
     color: Colors.textPrimary,
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: 20,
+    marginBottom: 16,
+    textAlign: 'center',
   },
   welcomeText: {
     fontSize: 16,
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: Colors.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: 20,
   },
   backButton: {
     padding: 8,
     marginRight: 12,
-  },
-  profileHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.textPrimary,
   },
   profileCard: {
     backgroundColor: Colors.cardBackground,

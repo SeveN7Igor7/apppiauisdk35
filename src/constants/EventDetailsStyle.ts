@@ -13,13 +13,14 @@ export const eventDetailsStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.neutral.white,
-    paddingTop: Platform.OS === 'android' ? 25 : 0,
   },
   
   // Header Styles
+  headerTopSafe: {
+    backgroundColor: Colors.neutral.black,
+  },
   header: {
     backgroundColor: Colors.neutral.black,
-    paddingVertical: Spacing.xl,
     paddingHorizontal: Spacing.container.horizontal,
     elevation: Spacing.elevation.high,
     shadowColor: Colors.shadow.dark,
@@ -31,6 +32,7 @@ export const eventDetailsStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    height: 52,
   },
   headerTitle: {
     ...Typography.styles.h2,
