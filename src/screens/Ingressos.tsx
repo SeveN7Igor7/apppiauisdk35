@@ -661,7 +661,7 @@ function EventsListView({
         </View>
       </View>
 
-      {/* Botão de Download Offline */}
+      {/* Botão de Download Offline 
       <TouchableOpacity 
         style={ingressosStyles.offlineDownloadButton}
         onPress={onOfflineDownload}
@@ -677,7 +677,7 @@ function EventsListView({
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF" />
         </View>
-      </TouchableOpacity>
+      </TouchableOpacity>*/}
 
       {/* Lista de Eventos Compacta */}
       <FlatList

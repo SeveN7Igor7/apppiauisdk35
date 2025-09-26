@@ -189,12 +189,29 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ eventId, isInsideModal })
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={isInsideModal ? 90 : 0}>
-      <FlatList ref={flatListRef} data={messages} keyExtractor={(item) => item.id} renderItem={renderMessage} contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false} />
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // Keep input above Android system navigation/keyboard
+      keyboardVerticalOffset={Platform.OS === 'ios' ? (isInsideModal ? 90 : 0) : (insets.bottom || 0)}
+    >
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMessage}
+        contentContainerStyle={[styles.messageList, { paddingBottom: (insets.bottom || 0) + 96 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      />
       <View style={[
         styles.inputContainer,
         {
-          paddingBottom: Platform.OS === 'ios' && isInsideModal ? Math.max(insets.bottom, 20) : Spacing.sm
+          // Add safe bottom padding for both iOS (inside modal) and Android devices with gesture nav
+          paddingBottom:
+            Platform.OS === 'ios'
+              ? (isInsideModal ? Math.max(insets.bottom, 20) : Spacing.sm)
+              : Math.max((insets.bottom || 0) + 8, 24),
         }
       ]}>
         <TextInput style={styles.textInput} value={newMessage} onChangeText={setNewMessage} placeholder="Digite sua mensagem..." placeholderTextColor={Colors.text.tertiary} multiline />

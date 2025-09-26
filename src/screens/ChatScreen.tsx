@@ -10,7 +10,6 @@ import {
   Image,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
 } from 'react-native';
 import { ref, push, onValue, off, serverTimestamp, query, orderByChild, limitToLast, get } from 'firebase/database';
 import { databaseSocial } from '../services/firebaseappdb';
@@ -19,7 +18,7 @@ import { Colors } from '../constants/Colors';
 import { Typography } from '../constants/Typography';
 import { Spacing } from '../constants/Spacing';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 
 interface ChatScreenProps {
@@ -39,7 +38,8 @@ interface UserProfile {
   profilePicUrl?: string;
 }
 
-const USER_PROFILE_CACHE_DIR = FileSystem.cacheDirectory + 'user_profile_pics/';
+// Some Expo type definitions may not include cacheDirectory in certain versions; cast to any to avoid TS error
+const USER_PROFILE_CACHE_DIR = (FileSystem as any).cacheDirectory + 'user_profile_pics/';
 
 const ensureProfilePicDirectoryExists = async () => {
   const dirInfo = await FileSystem.getInfoAsync(USER_PROFILE_CACHE_DIR);
@@ -72,6 +72,8 @@ const cacheProfilePic = async (userId: string, url: string): Promise<string | un
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ eventId }) => {
   const { user } = useContext(AuthContext);
+  // Cast to any to accommodate different shapes of user coming from AuthContext
+  const currentUser: any = user as any;
   const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -149,9 +151,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ eventId }) => {
     if (!newMessage.trim() || !user) return;
 
     const messageData = {
-      userId: user.uid,
-      userName: user.nome || user.email || 'Anônimo',
-      userPhoto: user.fotoPerfil || 'https://via.placeholder.com/150', // Use user.fotoPerfil
+      userId: currentUser?.uid,
+      userName: currentUser?.nome || currentUser?.email || 'Anônimo',
+      userPhoto: currentUser?.fotoPerfil || 'https://via.placeholder.com/150', // Use user.fotoPerfil
       text: newMessage.trim(),
       timestamp: serverTimestamp(),
     };
@@ -167,7 +169,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ eventId }) => {
   };
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
-    const isMyMessage = item.userId === user?.uid;
+  const isMyMessage = item.userId === currentUser?.uid;
     const profile = userProfiles[item.userId];
     const profilePic = item.userPhoto || profile?.profilePicUrl; // Prioritize message's userPhoto, then cached profile
 
@@ -206,7 +208,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ eventId }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets?.top || 0 }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets?.top || 0 }]} edges={['top', 'bottom']}>
       <View style={styles.header}>
         {/* No back button here, as it's a bottom sheet */}
         <Text style={styles.headerTitle}>Chat do Evento</Text>
@@ -218,18 +220,27 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ eventId }) => {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
-        contentContainerStyle={styles.messagesList}
+        contentContainerStyle={[
+          styles.messagesList,
+          // Add extra bottom padding so last items don't hide behind the input bar
+          { paddingBottom: (insets?.bottom || 0) + 96 },
+        ]}
+        keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? (insets?.bottom || 0) + 5 : 0}
+        // Keep the input bar above the Android navigation bar and keyboard
+        keyboardVerticalOffset={Platform.OS === 'ios' ? (insets?.bottom || 0) + 5 : (insets?.bottom || 0)}
         style={[
           styles.inputContainer,
           {
-            paddingBottom: Platform.OS === 'ios' ? Math.max((insets?.bottom || 0), 20) : 8,
+            // Safe area at the very bottom so buttons aren't obstructed by Android system nav
+            paddingBottom: Platform.OS === 'ios'
+              ? Math.max((insets?.bottom || 0), 20)
+              : Math.max((insets?.bottom || 0) + 8, 24),
           }
         ]}
       >

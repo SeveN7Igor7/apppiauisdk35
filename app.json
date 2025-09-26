@@ -3,7 +3,7 @@
     "sdkVersion": "54.0.0",
     "name": "Piauí Tickets",
     "slug": "PiauiTickets",
-    "version": "1.0.5",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.igorv13.piauiticketsiosapp",
-      "buildNumber": "1.0.5",
+      "buildNumber": "1.0.6",
       "icon": "./assets/logo.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -32,7 +32,12 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.igorv13.PiauiTickets",
-      "versionCode": 10
+      "versionCode": 12,
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
