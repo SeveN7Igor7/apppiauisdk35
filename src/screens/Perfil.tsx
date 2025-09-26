@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
   Linking,
   FlatList,
   StatusBar,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ref, get } from 'firebase/database';
@@ -308,6 +309,18 @@ export default function Perfil({ navigation }: { navigation: any }) {
   const [followerCount, setFollowerCount] = useState(0); // Novo estado para seguidores
   const [attendedEventsCount, setAttendedEventsCount] = useState(0); // Novo estado para eventos frequentados
   const [followingCount, setFollowingCount] = useState(0); // Novo estado para seguindo
+  // Estados para modal de lista de usuários (seguidores/seguindo)
+  const [showUserListModal, setShowUserListModal] = useState(false);
+  const [userListType, setUserListType] = useState<'followers' | 'following'>('following');
+  const [userListLoading, setUserListLoading] = useState(false);
+  const [userList, setUserList] = useState<{ cpf: string; fullname: string; avatar?: string }[]>([]);
+  const [userListIds, setUserListIds] = useState<string[]>([]);
+  const [userListIndex, setUserListIndex] = useState(0);
+  const [userListHasMore, setUserListHasMore] = useState(false);
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const USER_LIST_BATCH_SIZE = 25;
+  // Token para cancelar carregamentos anteriores quando o usuário reabrir/switchar rapidamente
+  const userListLoadToken = useRef(0);
       
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(30))[0];
@@ -395,6 +408,125 @@ export default function Perfil({ navigation }: { navigation: any }) {
       console.error("Erro ao buscar contagem de seguindo:", error);
       setFollowingCount(0);
     }
+  };
+
+  // Buscar dados mínimos do usuário para a lista (nome + avatar)
+  const fetchUserCard = async (cpf: string) => {
+    const userSnapshot = await get(ref(database, `users/cpf/${cpf}`));
+    if (!userSnapshot.exists()) return null;
+    const userData = userSnapshot.val();
+    let avatar = userData.avatar;
+    try {
+      const socialSnapshot = await get(ref(databaseSocial, `users/cpf/${cpf}`));
+      if (socialSnapshot.exists() && socialSnapshot.val().config?.perfilimage?.imageperfilurl) {
+        avatar = socialSnapshot.val().config.perfilimage.imageperfilurl;
+      }
+    } catch {}
+    return {
+      cpf,
+      fullname: userData.fullname || 'Usuário',
+      avatar,
+    };
+  };
+
+  // Carregar próximo lote de usuários com base em userListIds
+  // Carregar um lote explícito de ids a partir de um índice
+  const loadBatch = async (ids: string[], fromIndex: number, token: number) => {
+    if (fromIndex >= ids.length) { setUserListHasMore(false); return; }
+    setUserListLoading(true);
+    try {
+      const nextIds = ids.slice(fromIndex, fromIndex + USER_LIST_BATCH_SIZE);
+      console.log('[Perfil] Carregando lote', { fromIndex, count: nextIds.length, total: ids.length });
+      const results = await Promise.all(nextIds.map((id) => fetchUserCard(id)));
+      const cleaned = results.filter(Boolean) as { cpf: string; fullname: string; avatar?: string }[];
+      // Verifica se ainda é o mesmo carregamento
+      if (userListLoadToken.current !== token) {
+        console.log('[Perfil] Lote cancelado (token mudou)');
+        return;
+      }
+      setUserList((prev) => (fromIndex === 0 ? cleaned : [...prev, ...cleaned]));
+      const newIndex = fromIndex + nextIds.length;
+      setUserListIndex(newIndex);
+      setUserListHasMore(newIndex < ids.length);
+    } catch (e) {
+      console.error('Erro ao carregar lote da lista de usuários:', e);
+    } finally {
+      // Confere token antes de marcar loading=false
+      if (userListLoadToken.current === token) setUserListLoading(false);
+    }
+  };
+
+  // Carregar próximo lote usando estados atuais
+  const carregarProximoLote = async (force = false) => {
+    const token = userListLoadToken.current;
+    if (userListLoading && !force) return;
+    await loadBatch(userListIds, userListIndex, token);
+  };
+
+  // Preparar lista de seguindo (ids) e iniciar o carregamento paginado
+  const carregarListaSeguindo = async (cpf: string) => {
+    if (!cpf) return;
+    try {
+      const followingRef = ref(databaseSocial, `users/cpf/${cpf}/config/following`);
+      const snapshot = await get(followingRef);
+      const ids = snapshot.exists() ? Object.keys(snapshot.val()) : [];
+      const token = ++userListLoadToken.current;
+      console.log('[Perfil] Abrindo lista Seguindo', { totalIds: ids.length, token });
+      setUserList([]);
+      setUserListIds(ids);
+      setModalSearchQuery('');
+      setUserListIndex(0);
+      setUserListHasMore(ids.length > 0);
+      if (ids.length > 0) {
+        await loadBatch(ids, 0, token);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar lista de seguindo (Perfil):', error);
+      setUserList([]);
+      setUserListIds([]);
+      setUserListIndex(0);
+      setUserListHasMore(false);
+    }
+  };
+
+  // Preparar lista de seguidores (ids) e iniciar o carregamento paginado
+  const carregarListaSeguidores = async (cpf: string) => {
+    if (!cpf) return;
+    try {
+      const followersRef = ref(databaseSocial, `users/cpf/${cpf}/config/followers`);
+      const snapshot = await get(followersRef);
+      const ids = snapshot.exists() ? Object.keys(snapshot.val()) : [];
+      const token = ++userListLoadToken.current;
+      console.log('[Perfil] Abrindo lista Seguidores', { totalIds: ids.length, token });
+      setUserList([]);
+      setUserListIds(ids);
+      setModalSearchQuery('');
+      setUserListIndex(0);
+      setUserListHasMore(ids.length > 0);
+      if (ids.length > 0) {
+        await loadBatch(ids, 0, token);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar lista de seguidores (Perfil):', error);
+      setUserList([]);
+      setUserListIds([]);
+      setUserListIndex(0);
+      setUserListHasMore(false);
+    }
+  };
+
+  const abrirListaSeguindo = async () => {
+    if (!user?.cpf) return;
+    setUserListType('following');
+    setShowUserListModal(true);
+    await carregarListaSeguindo(user.cpf);
+  };
+
+  const abrirListaSeguidores = async () => {
+    if (!user?.cpf) return;
+    setUserListType('followers');
+    setShowUserListModal(true);
+    await carregarListaSeguidores(user.cpf);
   };
 
   const carregarEventosParticipados = async (cpf: string) => {
@@ -594,14 +726,14 @@ export default function Perfil({ navigation }: { navigation: any }) {
                   <Text style={styles.profileStatNumber}>{attendedEventsCount}</Text>
                   <Text style={styles.profileStatLabel}>Eventos</Text>
                 </View>
-                <View style={styles.profileStatItem}>
+                <TouchableOpacity style={styles.profileStatItem} activeOpacity={0.7} onPress={abrirListaSeguidores}>
                   <Text style={styles.profileStatNumber}>{followerCount}</Text>
                   <Text style={styles.profileStatLabel}>Seguidores</Text>
-                </View>
-                <View style={styles.profileStatItem}>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.profileStatItem} activeOpacity={0.7} onPress={abrirListaSeguindo}>
                   <Text style={styles.profileStatNumber}>{followingCount}</Text>
                   <Text style={styles.profileStatLabel}>Seguindo</Text>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -684,6 +816,69 @@ export default function Perfil({ navigation }: { navigation: any }) {
           />
         )}
       </ScrollView>
+      {/* Modal com lista de seguidores/seguindo */}
+      <Modal visible={showUserListModal} animationType="slide" transparent onRequestClose={() => setShowUserListModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, { paddingBottom: insets.bottom + 12 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {userListType === 'following' ? `Seguindo (${userList.length})` : `Seguidores (${userList.length})`}
+              </Text>
+              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowUserListModal(false)}>
+                <MaterialCommunityIcons name="close" size={22} color="#111827" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalSearchContainer}>
+              <MaterialCommunityIcons name="magnify" size={20} color={Colors.textSecondary} />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Buscar por nome..."
+                placeholderTextColor={Colors.textSecondary}
+                value={modalSearchQuery}
+                onChangeText={setModalSearchQuery}
+              />
+            </View>
+            {userListLoading ? (
+              <View style={{ paddingVertical: 24 }}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={userList.filter(u => u.fullname.toLowerCase().includes(modalSearchQuery.trim().toLowerCase()))}
+                keyExtractor={(item) => item.cpf}
+                contentContainerStyle={styles.modalList}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={styles.modalItem}
+                    onPress={() => {
+                      setShowUserListModal(false);
+                      // Navegar para Social com CPF do usuário
+                      setTimeout(() => navigation.navigate('Social', { cpf: item.cpf }), 0);
+                    }}
+                  >
+                    {item.avatar ? (
+                      <Image source={{ uri: item.avatar }} style={styles.modalAvatar} />
+                    ) : (
+                      <View style={[styles.modalAvatar, styles.avatarPlaceholder]}>
+                        <Text style={styles.avatarTextSmall}>{item.fullname.charAt(0).toUpperCase()}</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.modalName} numberOfLines={1}>{item.fullname}</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+                onEndReachedThreshold={0.5}
+                onEndReached={() => { if (userListHasMore && !userListLoading) carregarProximoLote(); }}
+                removeClippedSubviews
+                initialNumToRender={20}
+                windowSize={10}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1184,6 +1379,93 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "SF Pro Text" : "Roboto",
+  },
+  // ===== Modal de Lista (Seguidores/Seguindo) =====
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: Colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  modalCloseButton: {
+    padding: 6,
+    borderRadius: 16,
+  },
+  modalList: {
+    paddingVertical: 8,
+  },
+  modalSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 10,
+    marginHorizontal: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  modalSearchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    color: Colors.textPrimary,
+    paddingVertical: 4,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.background,
+    marginRight: 12,
+  },
+  modalName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  modalSub: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  avatarPlaceholder: {
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarTextSmall: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textSecondary,
   },
   // Cabeçalho igual ao Home
   header: {

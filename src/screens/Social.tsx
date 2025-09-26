@@ -22,7 +22,7 @@ import { databaseSocial } from '../services/firebaseappdb';
 import { AuthContext } from '../contexts/AuthContext';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 // Tipos
 interface UserSearchResult {
@@ -68,6 +68,7 @@ const Colors = {
 export default function Social() {
   const { user } = useContext(AuthContext);
   const navigation = useNavigation();
+  const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,6 +93,16 @@ export default function Social() {
       useNativeDriver: true,
     }).start();
   }, [viewMode]);
+
+  // Se veio um CPF por parâmetro, abrir diretamente o perfil
+  useEffect(() => {
+    const cpfParam = route?.params?.cpf;
+    if (cpfParam) {
+      loadUserProfile(String(cpfParam));
+    }
+    // não adicionar loadUserProfile como dependência para evitar loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params?.cpf]);
 
   // Função para buscar usuários por email ou telefone
   const searchUsers = async (query: string) => {
