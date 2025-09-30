@@ -21,6 +21,7 @@ import { ref, get, set } from 'firebase/database';
 import { databaseSocial } from '../services/firebaseappdb';
 import * as FileSystem from 'expo-file-system';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Linking } from 'react-native';
 
 const Colors = {
   primary: '#6366F1',
@@ -43,7 +44,7 @@ export default function Configuracoes() {
   const [isDebugUnlocked, setIsDebugUnlocked] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const VIDEO_STORAGE_DIR = FileSystem.documentDirectory + 'app_videos/';
+  const VIDEO_STORAGE_DIR = (FileSystem as any).documentDirectory + 'app_videos/';
 
   useEffect(() => {
     const fetchPrivacySetting = async () => {
@@ -140,7 +141,7 @@ export default function Configuracoes() {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { paddingBottom: (insets?.bottom || 0) }] }>
         <View style={styles.loginRequired}>
           <MaterialCommunityIcons 
             name="account-alert" 
@@ -156,7 +157,13 @@ export default function Configuracoes() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : (insets?.top || 0) }]}>
+    <SafeAreaView style={[
+      styles.container,
+      {
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : (insets?.top || 0),
+        paddingBottom: (insets?.bottom || 0),
+      },
+    ]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
@@ -170,7 +177,25 @@ export default function Configuracoes() {
           <Text style={styles.loadingText}>Carregando configurações...</Text>
         </View>
       ) : (
-        <ScrollView style={styles.content}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={{ paddingBottom: (insets?.bottom || 0) + 16 }}
+          scrollIndicatorInsets={{ bottom: insets?.bottom || 0 }}
+        >
+          {/* Sua Conta */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Sua Conta</Text>
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() => Linking.openURL('https://api.whatsapp.com/send/?phone=5518981719745&text=Ol%C3%A1%2C+preciso+de+ajuda...&type=phone_number&app_absent=0')}
+            >
+              <View style={styles.optionTextContainer}>
+                <MaterialCommunityIcons name="account-cancel" size={20} color={Colors.error} />
+                <Text style={[styles.optionText, { color: Colors.error }]}>Solicitar exclusão de conta e dados</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
           {/* Informações Pessoais */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Informações Pessoais</Text>

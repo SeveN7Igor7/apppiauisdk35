@@ -24,6 +24,7 @@ import { database } from '../services/firebase'; // Importação corrigida do da
 import { databaseSocial } from '../services/firebaseappdb';
 import { AuthContext } from '../contexts/AuthContext';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import InAppWebView from '../components/InAppWebView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const LogoImage = require('../../assets/logosemfundo.png');
 
@@ -59,23 +60,19 @@ interface EventoParticipado {
 type LoginScreenProps = { cpfInput: string; setCpfInput: (v: string) => void; password: string; setPassword: (v: string) => void; fazerLogin: () => void; loading: boolean };
 const LoginScreen = ({ cpfInput, setCpfInput, password, setPassword, fazerLogin, loading }: LoginScreenProps) => {
   // Função para abrir URLs externas
-  const openURL = async (url: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert('Erro', 'Não foi possível abrir o link');
-      }
-    } catch (error) {
-      console.error('Erro ao abrir URL:', error);
-      Alert.alert('Erro', 'Não foi possível abrir o link');
-    }
+  const [webVisible, setWebVisible] = useState(false);
+  const [webUrl, setWebUrl] = useState('');
+  const [webTitle, setWebTitle] = useState('');
+  const openInApp = (url: string, title: string) => {
+    setWebUrl(url);
+    setWebTitle(title);
+    setWebVisible(true);
   };
 
   return (
-    <View style={styles.loginScreenContainer}>
-      <View style={styles.authContainer}>
+    <>
+      <View style={styles.loginScreenContainer}>
+        <View style={styles.authContainer}>
         <View style={styles.authHeader}>
           {/* Logo com fundo estilizado */}
           <View style={styles.logoContainer}>
@@ -127,7 +124,7 @@ const LoginScreen = ({ cpfInput, setCpfInput, password, setPassword, fazerLogin,
           <View style={styles.actionButtonsContainer}>
             <TouchableOpacity 
               style={styles.forgotPasswordButton}
-              onPress={() => openURL('https://piauitickets.com/recoverypassword/')}
+              onPress={() => openInApp('https://piauitickets.com/recoverypassword/', 'Recuperar Senha')}
             >
               <MaterialCommunityIcons name="lock-reset" size={16} color={Colors.primary} />
               <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
@@ -141,15 +138,17 @@ const LoginScreen = ({ cpfInput, setCpfInput, password, setPassword, fazerLogin,
             
             <TouchableOpacity 
               style={styles.signupButton}
-              onPress={() => openURL('https://piauitickets.com/cadastro/')}
+              onPress={() => openInApp('https://piauitickets.com/cadastro/', 'Cadastro')}
             >
               <MaterialCommunityIcons name="account-plus" size={16} color={Colors.accent} />
               <Text style={styles.signupButtonText}>Faça seu cadastro</Text>
             </TouchableOpacity>
           </View>
         </View>
+        </View>
       </View>
-    </View>
+      <InAppWebView visible={webVisible} url={webUrl} title={webTitle} onClose={() => setWebVisible(false)} />
+    </>
   );
 };
 

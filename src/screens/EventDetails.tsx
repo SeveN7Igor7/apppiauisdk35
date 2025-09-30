@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Linking,
   StatusBar,
   Alert,
 } from "react-native"
@@ -25,6 +24,7 @@ import { Colors } from "../constants/Colors"
 import { Spacing } from "../constants/Spacing"
 
 import ChatComponent from "../components/ChatComponent"
+import EventWebView from "../components/EventWebView"
 import { eventDetailsStyles } from "../constants/EventDetailsStyle"
 
 type EventDetailsRouteParams = {
@@ -61,6 +61,7 @@ export default function EventDetails() {
   const [loading, setLoading] = useState(true)
   const [vibe, setVibe] = useState<VibeData | null>(null)
   const [isChatVisible, setIsChatVisible] = useState(false)
+  const [isWebVisible, setIsWebVisible] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [lastSeenTimestamp, setLastSeenTimestamp] = useState<number>(0)
   const slideAnim = useRef(new Animated.Value(Dimensions.get("window").height)).current
@@ -243,13 +244,29 @@ export default function EventDetails() {
     } catch { return "Avaliação será liberada quando o evento começar" }
   }
 
-  const handleOpenSalesPage = () => evento && Linking.openURL(`https://piauitickets.com/comprar/${eventId}/${evento.nomeurl || ""}` ).catch(err => console.error("Erro ao abrir URL:", err))
+  const handleOpenSalesPage = () => {
+    if (!evento) return
+    setIsWebVisible(true)
+  }
   const handleAvaliarVibe = () => {
-    if (!user) return Alert.alert("Login necessário", "Você precisa estar logado para avaliar.", [{ text: "Cancelar" }, { text: "Login", onPress: () => navigation.navigate("Perfil" as never) }])
+    if (!user) {
+      Alert.alert(
+        "Login necessário",
+        "Você precisa estar logado para avaliar.",
+        [
+          { text: "Cancelar" },
+          { text: "Login", onPress: () => (navigation as any).navigate("Perfil") },
+        ]
+      )
+      return
+    }
     if (!evento) return
     // Chamada corrigida: eventoJaComecou() é uma função, não uma propriedade de evento
-    if (!eventoJaComecou()) return Alert.alert("Avaliação não disponível", getMensagemLiberacaoVibe(), [{ text: "Entendi" }])
-    navigation.navigate("VibeScreen" as never, { eventId: evento.id, nomeEvento: evento.nomeevento, cpf: user.cpf } as never)
+    if (!eventoJaComecou()) {
+      Alert.alert("Avaliação não disponível", getMensagemLiberacaoVibe(), [{ text: "Entendi" }])
+      return
+    }
+    ;(navigation as any).navigate("VibeScreen", { eventId: evento.id, nomeEvento: evento.nomeevento, cpf: user.cpf })
   }
 
   const handleGoBack = () => navigation.goBack()
@@ -337,14 +354,14 @@ export default function EventDetails() {
             <View style={eventDetailsStyles.vibeSection}>
               <Text style={eventDetailsStyles.vibeSectionTitle}>Classificação do Evento</Text>
               <View style={eventDetailsStyles.vibeContainer}>
-                <View style={eventDetailsStyles.vibeStars}>{[1, 2, 3, 4, 5].map(star => <MaterialCommunityIcons key={star} name={star <= getVibeStars() ? "star" : "star-outline"} size={28} color={star <= getVibeStars() ? Colors.primary.orange : Colors.text.tertiary} />)}</View>
+                <View style={eventDetailsStyles.vibeStars}>{[1, 2, 3, 4, 5].map(star => <MaterialCommunityIcons key={star} name={star <= getVibeStars() ? "star" : "star-outline"} size={28} color={star <= getVibeStars() ? Colors.feedback.warning : Colors.text.tertiary} />)}</View>
                 <Text style={eventDetailsStyles.vibeMessage}>{getMensagemVibe()}</Text>
                 {vibe && <Text style={eventDetailsStyles.vibeCount}>{vibe.count} {vibe.count === 1 ? "avaliação" : "avaliações"} na última hora</Text>}
                 
                 {/* Botão do Chat posicionado perto das informações da vibe */}
                 <View style={styles.chatButtonContainer}>
                   <TouchableOpacity 
-                    style={[styles.chatButton, { backgroundColor: 'blue', borderWidth: 2, borderColor: 'yellow' }]} // Estilos temporários para visibilidade
+                    style={styles.chatButton}
                     onPress={handleOpenChat}
                   >
                     <MaterialCommunityIcons name="chat" size={20} color="white" />
@@ -358,7 +375,6 @@ export default function EventDetails() {
                     )}
                   </TouchableOpacity>
                 </View>
-                {console.log('DEBUG: Botão do Chat Renderizado', { unreadMessages, isChatVisible, eventoJaComecou: eventoJaComecou() })}
                 {!eventoJaComecou() && <Text style={eventDetailsStyles.vibeDisabledMessage}>{getMensagemLiberacaoVibe()}</Text>}
               </View>
             </View>
@@ -396,6 +412,17 @@ export default function EventDetails() {
             </Animated.View>
           </View>
         </Modal>
+
+        {/* WebView de Compra de Ingressos */}
+        {evento && (
+          <EventWebView
+            visible={isWebVisible}
+            eventId={eventId}
+            nomeUrl={evento.nomeurl}
+            eventName={evento.nomeevento}
+            onClose={() => setIsWebVisible(false)}
+          />
+        )}
       </SafeAreaView>
     )
 }
@@ -410,7 +437,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary.green,
+    backgroundColor: Colors.primary.purple,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 25,
@@ -426,7 +453,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -8,
     right: -8,
-    backgroundColor: Colors.primary.red || '#FF4444',
+    backgroundColor: Colors.feedback.error,
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -462,7 +489,7 @@ const localStyles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.neutral.gray,
+    borderBottomColor: Colors.neutral.mediumGray,
     backgroundColor: Colors.neutral.black,
   },
   chatHeaderTitle: {
